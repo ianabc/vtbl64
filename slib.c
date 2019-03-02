@@ -75,14 +75,13 @@ unsigned char buf[BUF_SZ];
 
 int main(int argc, char *argv[])
 {
-    int cnt = 1, fp, i, j, rd, suc = 0;
+    int cnt = 1, fp, i, j, suc = 0;
     char *ch, *nm;
     unsigned char mode = 0;
     unsigned short nent, nlen;
     long off, dlen, doff, flen;
     struct dmap *ptrd = (struct dmap *) (buf + 15);
     struct tmap *ptrt = (struct tmap *) (buf + 17);
-    time_t t;
     if (argc < 2) {
     printf("\nuseage: slib <filename> [-v]");
     printf("\ndisplay contents of setup library file: <filename>");
