@@ -167,16 +167,17 @@ void disp_srec(int ndx, int w, unsigned char *def, unsigned char *dat)
     unsigned char *ch = dat + sd->off;  // start of this data entry
     unsigned char *nch, ori;
     char fmt[10], *s;
-    int i, len = 0, loff = 0;
+    int i, loff = 0;
     long n;
 
     if ((sd->type == 'C' && sd->len > 4) || sd->type == 'M') {
     for (i = 0; i < sd->len; i++)
-        if (*(ch + i) != ' ')
-        if (sd->type == 'M')    // its type 'M' just count non ' ' chars for now
-            loff++;
-        else
-            loff = i + 1;   // find ndx to printable char +1 in type 'C' data, ie str terminator offset
+        if (*(ch + i) != ' ') {
+            if (sd->type == 'M')    // its type 'M' just count non ' ' chars for now
+                loff++;
+            else
+                loff = i + 1;   // find ndx to printable char +1 in type 'C' data, ie str terminator offset
+        }
     }
 
     if (sd->type == 'L')    // its a logical, just 1 char true or false
@@ -240,10 +241,10 @@ void disp_srec(int ndx, int w, unsigned char *def, unsigned char *dat)
              // clear if there is no field target
 int parse_dbf(int ndbf, unsigned char mode, long targ, int *fh)
 {
-    int cnt = 1, fp, fld, i, j, len, rd;
+    int cnt = 1, fp, fld, i, len, rd;
     unsigned char *dat;
     struct sdef *sd;
-    if (ndbf < 0 | ndbf > 3) {
+    if ((ndbf < 0) | (ndbf > 3)) {
     printf("\nndbf = %d invalid", ndbf);
     return (-3);
     }
@@ -347,7 +348,7 @@ void disp_time(unsigned char *tstr)
 // parse new file, '1-STEP.FSS', added in ver 4.4 of 1-STEP backup
 int parse_fss()
 {
-    int cnt = -1, fp, i, rd;
+    int cnt = -1, fp, rd;
     long num;
     printf("\nparsing version 4.4 '1-STEP.FSS' files list");
     if ((fp = open("1-STEP.FSS", O_RDONLY | O_BINARY)) == EOF) {
@@ -582,9 +583,9 @@ int find(int ndbf, int fld, long targ)
     }
 }
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-    int i, fnum = -1, fp = 0;
+    int i, fp = 0;
     unsigned char mode = DISPFLD;   // default, display fields
     printf("\niocfg version %s compiled for %s\n", VERSION, OS_STR);
 
@@ -637,4 +638,6 @@ void main(int argc, char *argv[])
 */
 
     putchar('\n');
+
+    return 0;
 }
