@@ -153,7 +153,6 @@ BYTE *get_fheader(int fp,int mode)
 {
     BYTE *hdr=NULL;
     DWORD *sig;
-    time_t *t;
     int rd = 0;
     if((hdr = (unsigned char *)malloc(HDR_SZ)) == NULL ||
         read(fp,hdr,HDR_SZ) != HDR_SZ)
@@ -168,7 +167,7 @@ BYTE *get_fheader(int fp,int mode)
         sig = (unsigned long *)hdr;
         if(*sig != 0xAA55AA55)
         {
-           printf("\ninvalid header signature 0x%lx != 0xAA55AA55");
+           printf("\ninvalid header signature 0x%lx != 0xAA55AA55", sig);
            hdr = NULL;
         }
 #ifdef FTSTAMP
@@ -471,7 +470,7 @@ int get_dheader(int fp, struct dir_head *dh)
 
 int get_cheader(int fp, struct cat_head *ch)
 {
-    int i,len=0,rd,ret=0;
+    int rd,ret=0;
     ch->nm1 = ch->nm2 = ch->nm3 = NULL;
 
     if((rd = read(fp,(BYTE *)ch,69)) != 69)
@@ -539,7 +538,7 @@ int validate_dir(char *p)
 #else
 #define PTERM '\\'
 #endif
-create_path(char *p)
+int create_path(char *p)
 {
     int i,len,ret=0;
     char *ch = p;
@@ -651,7 +650,7 @@ int do_extract(int fp,struct uni_str *nm,long *len,time_t *t,BYTE atrib)
 int parse_ucomp(int fp,char mode,long soff,struct dir_list **ptrl,char *xpath)
 {
     int cnt = 0,i,j,nx=0,rd,ret = -1;
-    char adv,*ch,verb = mode & VERBOSE;
+    char adv,verb = mode & VERBOSE;
     struct uni_str *drv[MAX_DRV];
     struct dir_head dhead; // used to store data from get_dheader()
     long off,*flen = (long *) &dhead.unknw1[17]; // this apppears to be file length
@@ -879,7 +878,6 @@ long fnd_cat(int fp, long off)
 int parse_cat(int fp,char mode,struct cat_list **ptrl,long off)
 {
     int cnt = 0,i,ret = -1;
-    char *ch,verb = mode & VERBOSE;
     struct cat_head chead; // used to store data from get_dheader()
     long *flen = (long *) &chead.unknw1[17]; // this apppears to be file length
     time_t *t;
@@ -993,7 +991,7 @@ int test_rec(BYTE unknwn[],BYTE bconst[],BYTE unknw1[],BYTE unknw2[],BYTE unknw3
    return(mcnt);
 }
 
-test_results(BYTE unknwn[], BYTE bconst[])
+int test_results(BYTE unknwn[], BYTE bconst[])
 {
    int i,j,mcnt = 0;
    printf("\nthe following locations have fixed values for all data");
@@ -1067,7 +1065,6 @@ long find_sig(int fp, long loff, unsigned long sig)
 int do_tests1(struct dir_list *dlst)
 {
    BYTE unknwn[118],bconst[118];
-   int i,j;
    struct dir_list *d = dlst; // temp list pointer
    int cnt=0,mcnt;
    init_tests(unknwn,bconst,d->dhead.unknw1,d->dhead.unknw2,d->dhead.unknw3);
@@ -1088,7 +1085,6 @@ int do_tests1(struct dir_list *dlst)
 int do_tests2(struct cat_list *clst)
 {
    BYTE unknwn[118],bconst[118];
-   int i,j;
    struct cat_list *d = clst; // temp list pointer
    int cnt=0,mcnt;
    init_tests(unknwn,bconst,d->chead.unknw1,d->chead.unknw2,d->chead.unknw3);
