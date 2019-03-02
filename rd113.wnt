@@ -1,0 +1,37 @@
+# WIN32 makefile for rd113.exe and related iocfg.exe and slib.exe with Open Watcom
+#after setting compiler path build with 'wmake -f rd113.wat'
+
+#for Open Watcom  WinNT console application which will run in a Windows 'Command Prompt'
+CC = wcc386
+CFLAGS = -bc -bt=nt -d2 -d_WIN32
+LINKER = wcl386
+LFLAGS = -"DEBUG ALL"   -bcl=nt // this has full debug flags
+
+all: rd113.exe iocfg.exe slib.exe
+
+clean:
+	del rd113.exe
+	del iocfg.exe
+	del rd113.obj
+	del iocfg.obj
+        del slib.exe
+        del slib.obj
+
+rd113.exe: rd113.obj
+	$(LINKER) $(LFLAGS) rd113.obj
+
+iocfg.exe: iocfg.obj
+	$(LINKER) $(LFLAGS) iocfg.obj
+
+slib.exe: slib.obj
+	$(LINKER) $(LFLAGS) slib.obj
+
+rd113.obj: rd113.c
+	$(CC) $(CFLAGS) rd113.c
+
+iocfg.obj: iocfg.c
+	$(CC) $(CFLAGS) iocfg.c
+
+slib.obj: slib.c
+	$(CC) $(CFLAGS) slib.c
+

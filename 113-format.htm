@@ -1,0 +1,527 @@
+<!-- beginning of WillsWorks Web Page -->
+<html>
+<body>
+<title>Iomega 113 Backup File Format</title>
+<h3>Iomega 113 Backup File Format</h3>
+<br>
+This information was last updated 02/16/17<p>
+
+For an overview, see the introductory comments in the 
+<a href="http:www.willsworks.net/file-format/iomega-1-step-backup"> 
+1-Step Backup</a> summary page.
+This page describes the physical file format I have worked out by inspection for Iomega
+1-Step Backup version 4.1 files (version 4.4 is believed to be the same).
+The work was performed on a WinME system running on a Intel 386 chip set.
+The Iomega distribution <b>w32_iom221a_en.exe</b> which created the following
+directory on the system 'C:\Program Files\Iomega'.  Below this it installed
+the a number of programs and subdirectories including main backup program,
+<b>dtiom98.exe</b> and 'C:\Program Files\Iomega\Iomega Backup' which it populates with 
+the executables and what appear to be database files that control
+which files are included in a particular backup job.  The majority of this
+file discusses the format of the Image.113 backup files created on the selected
+Iomega Drive attached to the system, but at the end I have a short discussion of
+the format of the <a href="#DBFFMT">*.dbf database files</a> which appear to control 
+the contents of the backup.
+</p>
+<p>
+The formats described below are my best guess at the file layout and are derived solely
+by reverse engineering a number of sample files created on the system above. This
+description may contain errors and is known to contain omissions.  I obtained enough
+information that I can parse an uncompressed Image.113 backup file and extract
+the files it contains onto the system hard disk.  At this time the compression
+method has not been identified so listing or extraction from compressed files
+is not yet possible.  C source code for a program to automate this process is
+available in <a href="http://www.willsworks.net/downloads/rd113-src.tar.gz">
+rd113-src.tar.gz</a>.  This program was used to validate the information presented here.
+A short description of the <a href="http://www.willsworks.net/file-format/iomega-1-step-backup/rd113-info">
+rd113</a> program is also provided.
+<p>
+<a name="113FMT"</a>
+<h3>Iomega *.113 file format</h3>
+The sample files I have examined where created on an Intel 386 based system.
+So the numeric data is arranged in Intel byte order, ie <a href="https://en.wikipedia.org/wiki/Endianness">
+little-endian</a> format.  So when a I display the value of a hex integer in the
+discussion below the byte order will be reversed from that shown in a dump
+of the region that contains the data.  Its possible there were *.113 files out there
+that were created on Macintosh machines which I believe used a Motorola chipset
+and stored data in <b>big-endian</b> format.  One can only hope that byte swapping
+was done on these files so they are compatible, but I have no data to support this.
+<p>
+These backup files appear to be arranged in blocks of 0x7400 bytes.
+They start which a header and a dump from one of my sample files 
+is shown below:
+<pre>
+   00000: 55 AA 55 AA  FF 00 02 00  00 00 DB 00  00 00 AE B0 |U.U.............
+   00010: 03 5E AE B0  03 5E 00 00  95 06 02 00  00 00 42 61 |.^...^........Ba
+   00020: 63 6B 75 70  20 4A 6F 62  20 32 2C 20  44 69 73 6B |ckup Job 2, Disk
+   00030: 20 31 20 20  20 20 20 20  20 20 20 20  20 20 20 20 | 1              
+   00040: 20 20 20 20  20 20 20 20  20 20 EB BA  05 5E 00 00 |          ...^..
+   00050: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   00060: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   00070: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   00080: 00 00 00 00  00 00 00 00  00 00 AE B0  03 5E 01 00 |.............^..
+   00090: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   
+</pre>
+The four byte signature at offset 0 occurs in all files as does the
+descriptive machine generated string starting at offset 0x1E.  The system
+increments the Job # each time a backup is created.  In my sample files, which
+almost all fit on a single zip drive, the disk # is '1'.  I created two
+sample backups which required two zip disks. I see no significant difference in
+the dump of the 2nd disk's header except for the disk # in the descriptive string.
+I wish I could see a byte that reflected the total number of disks in the backup
+set or the compression method, but do not see this data in the header.
+<p>
+The only other field in this header that has been identified is what appears
+to be a 4 byte unsigned long starting at offset 0xa.  This is the number of the next
+available 0x7400 byte data block in the file. IE let numb be the value of the long 
+at 0xa, then offset to the next block = 0x7400 *numb.  In an uncompressed file with a 
+catalog the offset to the beginning catalog region had been 0x7400 * (numb -1).
+However I find in large files it may start in one of the earlier blocks.  I have
+added a search for the start of the catlog by looking for the following
+byte sequence at the beginning of a block, working backwords from block above:<br>
+{86 00 A8 00 00 00 00 00 00 00 04 00}<br>
+To date all sample uncompressed files contain a catalog.  This catalog lists all 
+entries which have been proceeds so far. IE in a muti media disk image the
+catalog of disk #n contains all records on preceding disk as well as the 
+records on this disk.  In larger files the catalog may start in an earlier block
+of its large enough to span multiple blocks (have yet to see an example of this).
+If the catalog doesn't start with the id=0x00A80086 try searching backwards 
+by another block (see below).<br>
+Obviously there is other data here, but its not clear what it is.  There appear to
+be several 4 byte unsigned long values starting at offsets:<br>
+0xE,0x12,0x4A,0x8a  all with nearly the same value with small differences in 
+the least significant byte as shown above.  My initial thought was
+the these were <a href="http://man7.org/linux/man-pages/man3/ctime.3.html">time_t</a>
+values, ie the number of seconds elapsed since 1970.  Its something close to this,
+but different.  Below I compare the last modified file time for two backup files to 
+the output from ctime() for the 1st of the 4 byte longs in the list above.
+<pre>
+file       backup file timestamp   header value  output from ctime()
+ImageD.113   01/14/17/ 01:18       0x5E11DEA1    01/05/2020 08:03:29
+ImageE.113   01/21/98  12:34 PM    0x381B0EDC    10/30/1999 11:29:32
+</pre>
+I don't really care about this as the file and directory time stamps in
+the structures described below are time_t values, but since there are 4 of
+these in each header I thought I should mention them.
+<p>
+The files data region starts at offset 0x15c00, ie the 4th 0x7400 block in
+the file. All samples I have seen to date for the disk 1 of a backup have zeros 
+between the end of the file header and the start of the data region.  A modest 
+waste of space to the casual observer. I've only created one uncompressed backup
+which spans 2 media disks.  In this the dumps below show these short data
+segment at the beginning of each block:<br>
+<pre>
+at the beginning of the 2nd block in the file:
+   07400: 55 AA 55 AA  FF 00 02 00  00 00 F4 0C  00 00 25 39 |U.U...........%9
+   07410: 20 5E 25 39  20 5E 00 00  7A 06 02 00  00 00 20 20 | ^%9 ^..z.....  
+   07420: 20 20 20 20  20 20 20 20  20 20 20 20  20 20 20 20 |                
+   07430: 20 20 20 20  20 20 20 20  20 20 20 20  20 20 20 20 |                
+   07440: 20 20 20 20  20 20 20 20  20 20 25 39  20 5E 00 00 |          %9 ^..
+   07450: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   07460: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   07470: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   07480: 00 00 00 00  00 00 00 00  00 00 25 39  20 5E 01 00 |..........%9 ^..
+   07490: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+
+at the beginning of the 3rd block in the file:
+   0e800: 56 54 42 4C  6E 00 00 00  4F 6E 65 53  74 65 70 20 |VTBLn...OneStep 
+   0e810: 2D 20 31 2F  32 35 2F 32  30 31 37 20  2D 20 31 30 |- 1/25/2017 - 10
+   0e820: 3A 33 35 20  41 4D 20 20  20 20 20 20  20 20 20 20 |:35 AM          
+   0e830: 20 20 20 20  DD 38 20 5E  22 02 71 00  00 00 00 00 |    .8 ^".q.....
+   0e840: 00 00 00 00  00 00 00 00  00 00 00 00  03 00 00 00 |................
+   0e850: 71 00 00 00  00 00 00 00  00 00 00 00  FE 5A 00 00 |q............Z..
+   0e860: 0A C2 31 00  00 00 00 00  00 00 00 00  00 00 00 00 |..1.............
+   0e870: 00 00 00 00  00 00 00 00  00 00 03 00  00 07 00 00 |................
+   0e880: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+</pre>
+too soon to speculate what these might indicate other than a multi disk backup
+without more sample data.  The remainder of the blocks contained zeros.
+<p>
+If the file is compressed it begins with 8 bytes = 0, if it is not
+compressed it begins with the signature unsigned long 0x33CC33CC.  Sample
+dumps of the start of this region for a compressed and uncompressed file below:<br>
+<pre>
+  compressed backup
+  15c00: 00 00 00 00  00 00 00 00  F0 73 66 0C  F0 42 18 00 |.........sf..B..
+
+  uncompressed backup
+  15c00: CC 33 CC 33  86 00 A8 00  00 00 00 00  00 00 04 00 |.3.3............
+</pre>
+This is the first clue as to whether the file contains compressed or uncompressed
+data.  In the sample data seen to date, the file data region extends
+to offset 0x15c00 to (numb-1) *0x7400 where numb is the block count from
+the file header and the beginning of the catalog region in an uncompressed file.
+The signature byte above, 0x33CC33CC, occurs at the beginning of each file,
+drive, or sub directory region in an uncompressed file as described below.
+One can search the directory region for this signature and will find one such
+signature for each of the headers which proceed these definitions.  No such
+signatures are found in the data region of a compressed file which is another
+more cumbersome way to identify the file type. Wish I knew a better way!<p>
+
+It appears that the compressed file's data region is a compressed image of the
+uncompressed data region.  The limited information I have on this is presented later,
+but until the compression method is known this is just speculation.<br>
+The structures and file layout below are for an uncompressed file.<p>
+
+<h2> Uncompressed file format</h2>
+If the file contains a catalog, it will be found at the offset 
+(numb -1) * 0x7400  where numb is obtained from the file header as described above. 
+Its a little easier to describe the data in
+the files region header after describing the headers in the catalog as the 
+catalog headers are a subset of the file region headers.  This description
+is self contained, but it maps to 'struct dir_head' and 'struct cat_head' in
+the source file rd113.c.
+<p>
+Below is a dump of the first header in the catalog region from one of the sample backups, 
+the offsets shown are relative to the start of the header:
+<!-- 0x65800 to 0x65888 ie length 0x88 in ImageD.113 -->
+<pre>
+  000: 86 00 A8 00  00 00 00 00  00 00 04 00  0A 00 41 07 |..............A.
+  010: 00 00 00 00  00 00 00 00  00 00 00 00  00 0A 00 00 |................
+  020: 00 00 00 00  00 00 00 1C  00 10 00 00  00 00 00 00 |................
+  030: 00 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+  040: 00 00 00 00  00 04 00 64  00 3A 00 02  00 00 00 00 |.......d.:......
+  050: 00 00 00 00  00 09 00 00  00 00 00 00  00 00 00 00 |................
+  060: 04 00 64 00  3A 00 00 00  00 00 00 00  00 00 00 00 |..d.:...........
+  070: 10 00 4F 49  4D 47 03 00  00 00 00 00  00 00 00 00 |..OIMG..........
+  080: 00 00 04 00  64 00 3A 00                           |....d.:.        
+  
+This is a variable length structure as it contains 3 unicode strings.
+A unicode string starts with a 2 byte word for the # of bytes in string
+Its followed by the string bytes, in ascii these are repeats of {%c,0}
+   ie the ascii char value and a Nul byte.
+   In this dump the ascii for the unicode strings is "d:"
+   in all sample files so far all 3 unicode strings have been identical.
+   
+</pre>    
+Both the catalog and file data region begin by listing the disk drives contained in 
+the backup, there will be one or more that begin with the id signature 0xA8086.  I 
+have not figured out what these bytes mean, but apparently only the drives have 
+this id. Hence one can determine the number of drives in the archive by counting the 
+occurences of this id at the beginning of the catalog or files regions.<p>
+
+<pre>   
+listed below are the identified hex offsets in dump above:
+The first 0x45 bytes have fixed offsets before the 1st unicode string
+If you look at the source code this is unsigned char unknw1[]
+000: a 4 byte id, always as show above for one of the drives in the archive.
+00A: byte path length in sample files = 4 for a drive spec, > 4 if a subdir
+00E: byte path flag, see bitmap below
+011: file length, probably a 64 bit int but works as 4 byte long in sampe files
+029: byte file attribute
+02D: 4 byte time_t (1st of 4)
+035: 4 byte time_t (2nd of 4)
+03D  4 byte time_t (3rd of 4)
+045: start first variable length name string, two byte length +2 * lens bytes data
+the following offsets shown relative to after the last string byte at 0x4b above
+015: start of 2nd variable length name string
+the following offsets shown relative to after the last string byte at 0x66 above
+00c: id string always "IOMG"
+01c: start of 3rd variable length name string
+
+</pre>
+As shown in this and the following dump, all the variable length name strings
+have been identical for all three fields in the record, in the example above "d:"
+is the ascii version of the string. In the dump below the ascii version of the
+string is "lancia.txt".  The four time_t fields have also been identical for each
+record encountered in the sample data.<p>
+
+The path flag at offset 0xE from the start of this structure is a bitmapped byte
+as is the file attribute byte.  The following bit definitions seem to work
+for the path flag:<br>
+<pre>
+    0   contine processing
+    1   a new entry, typically a drive or subdir
+    8   last entry at this nesting level
+ 0x20   indicates end of data after this record
+ 0x40   this record contains a drive specification
+
+</pre>
+<p>
+Below is a dump of the files region header from part way through the catalog in
+one of the sample backups, the offsets shown are relative to the start of the header:
+<!--0x17526 - 0x0x1760B => len 0xe6  ImageD.113 rec 14 path  Inet/HTML/lancia -->
+<pre>
+  000: CC 33 CC 33  B6 00 97 0A  00 00 00 00  00 00 24 00 |.3.3..........$.
+  010: 0A 00 08 07  00 9F 09 00  00 00 00 00  00 00 00 00 |................
+  020: 00 0A 00 00  00 00 00 00  00 00 00 1C  00 00 00 00 |................
+  030: 00 60 5C 1D  4B 00 00 C0  12 50 B0 79  58 00 00 C0 |.`\.K....P.yX...
+  040: 12 54 79 E1  46 00 00 C0  12 14 00 6C  00 61 00 6E |.Ty.F......l.a.n
+  050: 00 63 00 69  00 61 00 2E  00 74 00 78  00 74 00 02 |.c.i.a...t.x.t..
+  060: 00 00 00 00  00 00 00 00  00 09 00 00  54 79 E1 46 |............Ty.F
+  070: 00 00 C0 12  14 00 6C 00  61 00 6E 00  63 00 69 00 |......l.a.n.c.i.
+  080: 61 00 2E 00  74 00 78 00  74 00 00 00  00 00 00 00 |a...t.x.t.......
+  090: 00 00 00 00  10 00 4F 49  4D 47 03 00  00 00 26 19 |......OIMG....&.
+  0a0: 00 00 00 00  00 00 14 00  6C 00 61 00  6E 00 63 00 |........l.a.n.c.
+  0b0: 69 00 61 00  2E 00 74 00  78 00 74 00  0A 00 49 00 |i.a...t.x.t...I.
+  0c0: 6E 00 65 00  74 00 00 00  48 00 54 00  4D 00 4C 00 |n.e.t...H.T.M.L.
+  0d0: 00 00 6C 00  61 00 6E 00  63 00 69 00  61 00 00 00 |..l.a.n.c.i.a...
+  0e0: 99 66 99 66  07 00                                 |.f.f..          
+
+</pre>
+I intentionally choose a different record in the file to show the contrast between
+the variable length strings which break up the sections of this structure.
+The file data regions headers all begin with the signature id 0x33CC33CC as
+shown above at offset 0. This is followed by an exact copy of the catalog
+region header (except for the last header record which only differs in the last few bytes).
+So in the dump above if ones starts counting at offset 4 after the four byte 
+signature, the files region data above matches the field offsets for 
+the catalog region data above, although the data in the field differs,  
+assuming one accounts for the variable length uni-code data fields.<p>
+However the files region structure also contains additional information after
+the 3rd unicode string.  The byte following the 3rd unicode string, "lancia.txt" in 
+ascii, is at offset 0xBC above. The next two bytes function are unknow but always 
+appear to be (0xa,0). This is followed by a forth variable length unicode path 
+string, but its in a slightly different format from the three unicode strings 
+above as there is no preceding length word.  The total number of bytes
+in this define by the unicode path as the path length byte described at offset 0xA 
+of the catalog record (and in this file record dump its at offset 0xE as the 
+4 byte signature precedes the catalog data in this record).  The number of bytes 
+in this path string at the end of the record is <br>
+(the path length above) - 4<br>
+In all sample files to date the drive string length has be 4 bytes, in ascii a drive
+letter followed by a colon, ':'.  If the path length
+is > 4 there is path data to be read.  It can be seen in the example dump above
+where there are 3 separate unicode strings each each separated from the next by 
+two 0 bytes, {0,0}<br>
+Following these unicode strings there are always two more terminating zero bytes,
+{0,0} which exist even if the above is path length is equal to 4 and there are 
+no path strings these two terminators exist.<br>
+At offset 0xE0 in the dump above is another signature byte 0x66996699 followed
+by two more unknow bytes which always seem to be {0x7,0}.
+</p>
+<p>
+This is the end of the file structure.  If its a file and there is file data to be
+written to disc when its extracted the file length bytes will be greater than 0.
+If no data needs to be extracted the file length at offset 0x11 is 0.  If the 
+file length is greater than zero this number of bytes
+must be skipped over or written out for extraction.
+</p>
+<p>
+
+Finally there is another trailer record after the file data if it exists. This 
+trailer is 18 bytes long and contains three instances of the signature 0x66996699:<br>
+{99 66 99  66 0A 00 99  66 99 66 02 00 99 66 99  66 00 00 }
+</p>
+<p>
+
+Following this trailer the sequence repeats with the next file beginning with
+the signature byte 0x33CC33CC.<br>
+
+It took quite a while to identify the path flag which cleared up some of the 
+parsing.  If the end of data flag, bit 0x20, is set one stops processing after this record.
+It also allows one to identify the current drive while parsing records.  The logic
+currently used in rd113.c is to start reading the files data region.
+The drive records are always first records in a backup file, and its a drive specification 
+if the 'new new entry' and 'drive bits', 0x41, are set in the path flag.
+Save each drive string in the order as they occur.  After the drives have been processed
+set the current drive to the first drive string saved.  Each time the path length
+returns to 4 its back to the root of the drive.  If path length = 4 and the previous 
+path flag had the 'last at this nesting level', bit 0x8 set, increment the drive string.
+</p>
+<p>
+If this attempt at an English description doesn't work for you try looking at
+the source code for rd113.c in rd113_src.tar.gz.
+</p>
+<p>
+<a name="DBFFMT"</a>
+<h3>Iomega *.DBF file format</h3>
+<p>
+This is shorter and less specific as I doubt anyone is really interested or
+likely to still have the need to look at the format of the configurations
+files the <b>dtiom98</b> program maintains to control the back generation.  However
+a little documentation is of interest as these file use a format that is
+very similar to the one used in the later 
+<a href="http://www.willsworks.net/file-format/iomega-1-step-backup/1-step-format">
+1-Step backup program version 5.3</a>.
+</p>
+<p>
+The files of potential interest in the Program Files\Iomega\Iomega Back\:<br>
+<pre>
+FILEINFO.DBF, FILEINFO.CDX
+FILES.DBF, FILES.CDX, FILES.FTP, FILES.STK
+TAPES.DBF, TAPES.CDX. TAPES.FPT, TAPES.STK
+VOLUMES.DBF, VOLUMES.CDX, VOLUMES.STK
+Recover.Cfg
+OneStep.Cfg
+LOG_FILE
+
+</pre>
+I have looked casually at the *.DBF files as described below.<br>
+The LOG_FILE is as the name implies a log of all the backups done on
+the current machine.  Its appended to after each backup so it contains
+a history of the backups that were done.  The other files above are overwritten
+with new data after each backup or when the configuration options are changed.
+</p>
+<p>
+The OneStep.Cfg file is text file that seem to contain the following:
+1st line has always been the same on my test machine.
+2nd line Job # and # of disks in last backup
+3rd line date and time backup was done
+
+The recover.cfg might be the same format, but I've never created a recovery disk
+so am not sure, in my samples only the 1st line has text.  Both my *.Cfg
+files contain the following text in line 1:<br>
+0 0 0 0 2 912080 0<br>
+</p>
+
+<p>
+<pre>
+*.dbf files are a mix of binary and text data listing backup files
+*.cdx files are primarily binary, but have regions of text data.
+*.fpt files are primarily binary, but have some text data.
+      these seem to begin with the missing name data in *.dbf files
+*.stk files are binary, but typically just 8 bytes long
+<pre>
+I found the *.dbf files of interest to review which files had been
+selected for the backup, and because the file format is similar to
+that used in the later 1-Step BackUp version 5.3 *.1-Step file
+as described in <a href="1-Step-Format.htm">1-Step-Format</a>
+documentation.
+<p>
+The file begins with an array of 0x20 byte entries. A dump of a
+sample FILES.DBF is shown below:<br>
+<pre>
+   00000: F5 75 01 19  C0 00 00 00  C1 00 22 00  00 00 00 00 |.u........".....
+   00010: 00 00 00 00  00 00 00 00  00 00 00 00  01 00 00 00 |................
+   00020: 49 44 00 00  00 00 00 00  00 00 00 43  01 00 00 00 |ID.........C....
+   00030: 04 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   00040: 50 41 52 45  4E 54 00 00  00 00 00 43  05 00 00 00 |PARENT.....C....
+   00050: 04 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   00060: 4E 41 4D 45  00 00 00 00  00 00 00 43  09 00 00 00 |NAME.......C....
+   00070: 0D 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   00080: 4E 41 4D 45  4C 45 4E 00  00 00 00 43  16 00 00 00 |NAMELEN....C....
+   00090: 02 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   000a0: 4C 4F 4E 47  4E 41 4D 45  00 00 00 4D  18 00 00 00 |LONGNAME...M....
+   000b0: 0A 00 00 00  00 00 00 00  00 00 00 00  00 00 00 00 |................
+   000c0: 0D 20 01 00  00 00 00 00  00 00 63 3A  20 20 20 20 |. ........c:    
+   000d0: 20 20 20 20  20 20 20 02  00 20 20 20  20 20 20 20 |       ..       
+   000e0: 20 20 20 20  02 00 00 00  01 00 00 00  41 55 54 4F |    ........AUTO
+   000f0: 45 58 45 43  2E 44 4F 53  20 0C 00 20  20 20 20 20 |EXEC.DOS ..     
+
+The first record, offset 0 to 0x1f above is atypical and not well understood.
+In the dump above the next 5 records at offset 0x20 to 0xC0 share a common
+definition structure. Offset below are relative to the start of the record.
+ 0x0-0xA
+ 0xB        field type {'C','L','M'}
+ 0xC-0xF    4 byte offset to field in data record
+ 0x10-0x13  4 bytes field length
+
+ The offset to the first field has always been 1.
+ And the offset to the next field is always the current offset + length.
+ Type 'L' its a logical, the length is always 1. None in this example.
+ Type 'C' is normally character data, ie an ascii string.  However it
+ appears type 'C' with a length <= 4 is treated as a binary value,
+ only lengths of 2 and 4 have been seen, ie WORD and LONG values.
+ Type 'M' is a mystery. It appears to be an array of pointers to strings
+ in the corresponding *.S  file.  Its used to handle long file names
+ that exceed the 0xD 'NAME' field length.
+ 
+ </pre>
+ This array of structure definitions is terminated with a byte = 0xD 
+ where the next record would begin.  In the example above the terminator 
+ is at offset 0xC0. The data records immediately follow.  The last list
+ of data records is terminated by a byte = 0x1A where the next record would begin.
+ In a continuation record this byte is 0x20, and the 1st field immediately follow it.
+ <p>
+ <pre>
+ The first data record in the example above has the following field values:
+ Field     value
+ ID          1
+ PARENT      0
+ NAME        c: (followed by spaces which are ignored)
+ NAMELEN     2
+ LONGNAME   all spaces, ie unused
+ 
+ The second data record begins at offset 0xE3 and has Name = "AUTOEXE.DOS"
+ 
+ 
+ The offset to the first field (always 1) plus the sum of the field lengths gives the
+ total size of each record.  See the table below for a list of the number
+ of fields (excludes unused 1st field)and the data record size for each of 
+ the *.dbf files:<br>
+ <pre>
+ File Name   number of fields  data record size
+ fileinfo.dbf      9               55
+ files.dbf         5               34
+ tapes.dbf         7              147
+ volumes.dbf      22              242
+ </pre>
+ </p>
+ <p>
+ Ignoring the fact that type 'M' records and the method for getting
+ to the last part of a long string is not understood. The information
+ above allows the *.dbf files to be parsed. The sample program iocfg.c
+ does this on a file by file basis.  The files.dbf is clearly a list of
+ files (which includes directory entries). Field 1, 'ID', defines a unique
+ numeric file ID
+ if it exists.  Field 1, files 'ID', starts at 1 and increases sequentially in
+ the sample files.  ID==0 which occurs frequently in the fileinfo.dbf
+ file data is appearently reserved for unused. Field 2, 'PARENT', 
+ Parent field is the ID # of the parent directory its it exists and maps to its
+ name.  A 'PARENT' value of 0 indicates there is no parent directoryas in the 
+ example above for ID = 1 which is the c: drive root directory.  
+ Thus one can build a directory tree
+ from this information.  Unfortunately it turns out there may be more files
+ in files.dbf than there are in the selections menu for the backup, especially
+ if some files have been deleted from the previous backup they tend to
+ still appear in the files.dbf list.
+ </p>
+ <p>
+ tapes.dbf appears to list the actual backups in order of the media disks produce. 
+ Field 1, 'ID', increments  sequentially starting with 1, but there is one
+ entry for each media disk, ie for a Job with two disks there are two
+ records with the same Job #. In field  2, 'NAME' the ascii text string 
+ containing the Job # and Disk # are listed.
+ In field 3, 'DEVICE', is a type 'M' field whose purpose
+ is unknown. This is followed by the last 4 fields 4-7 which are four different file 
+ times {'LFTIME','IFTIME','LWTIME','MEDTIME'}.  Unclear what these map to.
+</p>
+<p>
+ 
+volumes.dbf lists the backup jobs in historical order.  It has the largest
+record size and contains a signicant amount of data. Field 1, 'ID' increments
+sequentially starting with for 0 in record 1. Field 2, 'TAPE_ID', points
+to the corresponding record in tapes.dbf which maps the record to the Job
+# and apparently the last disk #.  Not tests would be required, but to get 
+data for all disks in the backup it looks like one has to back up
+through the tapes.dbf records.  I only have one two disk sampe so its not
+clear. The meaning of several other fields is unclear, but the last 4 fields
+are of interest.  Fields 8 and 9 both appear to be descriptive strings,
+and both are empty in all my sample files.  I've been wondering why the
+descriptive string entered when setting backup options never gets displayed,
+count this be a program bug?  
+Field 13, 'COMPID', appears to identify the compression method using
+0 for uncompressed and 2 in the cases where the data is compressed.
+Fields 19 and 20 together represent at 64 bit long
+which appears to be the length of the data region.  Fields 21 and 22 together
+represent a 64 bit long which appears to represent the length of the 
+catalog region.
+</p>
+<p>
+fileinfo.dbf appears to solve the issue of there being too many file
+in files.dbf.  I haven't taken the time to verify this but suspect
+the first to fields fileinfo.dbf restrict the file selection to the 
+files actually placed in a given backup.  I believe field 1, 'NAME_ID',
+points to a record, and therefore a name, in files.dbf if its 0 
+ignore it and step ahead.  fileinfo.dbf field 2, 'VOL_ID' points to
+a specific backup record in volumes.dbf. If it points to the backup of
+interest the file is in the backup.  The job # and disk # can be verified
+but following the volumes.dbf field 2, 'TAPE_ID'.
+</p>
+
+Note, version 4.4 of 1-STEP Backup added a file named '1-STEP-FSS'.
+Its not entirely clear what this is.  It lists some of the files
+included in the backup.  The is a 12 byte header, and then repeats
+of 10 binary bytes followed by a variable length path string. The
+length of the string is in the 10th binary byte.  I my 1st trial,
+there were 18 paths in the '1-STEP.FSS', but aproximately 80 different files
+in the backup.  Unclear what the selection critera are for this file.
+Also note my version 4.4 backup includes on the order of 2000
+entries of what appear to be data with the path listing 'Registry/HKU'
+although no files from the Windows disk C: were selected.
+</body>
+</html>
+
+
