@@ -239,7 +239,7 @@ int parse_comp(int fp,char mode,char *hdr)
     if((ibuf = (unsigned char *)malloc(BLK_SZ)) == NULL)
     {
           printf("\nfailed to allocate input buffer");
-	  ret=-3;
+	  ret= -3;
     }
     l_lo = (unsigned long *)ibuf;
     l_hi = l_lo + 1; // point to 1st 3 longs in ibuf
@@ -805,7 +805,7 @@ int parse_ucomp(int fp,char mode,long soff,struct dir_list **ptrl,char *xpath)
 	       printf("0x%02x ",j);
 	    }
 	    putchar('\n');
-	    ret=-4;
+	    ret= -4;
             break; 
 	}
         if(mode & DH_SAVE)
