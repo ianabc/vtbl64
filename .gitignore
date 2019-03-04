@@ -1,5 +1,6 @@
 iocfg
 slib
 rd113
+vtbl
 *.o
 *~
