@@ -597,7 +597,7 @@ int main(int argc, char *argv[])
         printf
             ("\n   by default write decompressed data to new file 'dcomp.out'\n");
         suc++;
-    } else if ((fp = open(argv[1], O_BINARY | O_RDWR, S_IREAD)) < 0) {
+    } else if ((fp = open(argv[1], O_BINARY)) < 0) {
         printf("error opening %s", argv[1]);
         suc++;
     } else if ((fhead1 = get_fheader(fp)) == NULL) {
@@ -789,7 +789,7 @@ int main(int argc, char *argv[])
                                     printf
                                         ("fatal decompression error, bytes read 0x%x != seg_sz 0x%x",
                                          comp_rd, shead.seg_sz);
-                                    //suc++;
+                                    suc++;
                                 } else {        // get next seg_sz for current segment
                                     if ((rd =
                                          read(fp, &seg_sz,
