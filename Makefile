@@ -3,6 +3,7 @@
 
 CC = gcc
 CFLAGS = -g -Wall -Dunix
+CFLAGSEXTRA = -ggdb -ansi -pedantic
 LDFLAGS = -lrt -g
 
 .SUFFIXES:
@@ -15,7 +16,7 @@ LDFLAGS = -lrt -g
 prefix = /usr/local
 exec_prefix = $(prefix)
 
-PROGRAMS := rd113 iocfg slib vtbl
+PROGRAMS := rd113 iocfg slib vtbl vtbl64
 
 all: $(PROGRAMS)
 
@@ -34,6 +35,13 @@ $(PROG): $(PROG).o
 PROG = vtbl
 $(PROG): $(PROG).o qicdcomp.o
 	gcc  -g -o $@ $^
+
+PROG = vtbl64
+$(PROG): $(PROG).o
+	gcc  -g -o $@ $^
+
+$(PROG).o: $(PROG).c
+	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
 
 .PHONY: clean
 
