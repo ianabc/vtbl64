@@ -5,7 +5,8 @@ typedef unsigned int DWORD;
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
 
-struct fhead113 {
+#pragma pack(push, 1)
+typedef struct {
     DWORD sig;                  /* signature value should be 0xAA55AA55 definded in qicdcomp.h as IOHEAD_SIG */
     WORD unkwn[3];              /* 3 unknow words often {0xFF,0x2,0} */
     DWORD blkcnt;               /* appears to be a block count, not the same value in 1st & 2nd header, larger in 2nd */
@@ -17,10 +18,12 @@ struct fhead113 {
     BYTE unkwn3[60];            /* unknown, always zeros? */
     DWORD t4;                   /* a qic 113 date time value */
     WORD unkwn4;                /* unknown, often 0x1 */
-};
+} fhead113;
+#pragma pack(pop)
 
 
-struct vtbl113 {
+#pragma pack(push, 1)
+typedef struct {
     BYTE tag[4];                /* should be 'VTBL' */
     DWORD nseg;                 /* # of logical segments */
     char desc[44];
@@ -40,4 +43,25 @@ struct vtbl113 {
     BYTE comp;                  /* compression bitmap, 0 if not used */
     BYTE OStype;
     BYTE res2[2];               /* more reserved stuff */
+} vtbl113;
+#pragma pack(pop)
+
+char *flagbits[] = {
+    "Vendor specific volume",
+    "Volume spans multiple cartidges",
+    "File sets written without verification",
+    "Reserved (should not occur)",
+    "Compressed data segment spaning",
+    "File Set Directory follow data section"
+};
+
+char *OStype[] = {
+    "Extended",
+    "DOS Basic",
+    "Unix",
+    "OS/2",
+    "Novell Netware",
+    "Windows NT",
+    "DOS Extended",
+    "Windows 95"
 };
