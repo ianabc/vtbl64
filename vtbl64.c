@@ -4,7 +4,7 @@
 #include <time.h>
 #include "vtbl64.h"
 
-fhead113 *get_fheader(FILE *fp)
+fhead113 *get_fheader(FILE * fp)
 {
     fhead113 *hdr = NULL;
     int rd;
@@ -14,19 +14,21 @@ fhead113 *get_fheader(FILE *fp)
         exit(1);
     }
     if ((rd = fread(hdr, FHDR_SZ, 1, fp)) != 1) {
-        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte header\n", rd, FHDR_SZ);
-		exit(1);
-	}
+        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte header\n", rd,
+                FHDR_SZ);
+        exit(1);
+    }
     if (hdr->sig != 0xAA55AA55) {
-        fprintf(stderr, "Invalid header signature 0x%x != 0xAA55AA55\n", hdr->sig);
-		exit(1);
-	}
+        fprintf(stderr, "Invalid header signature 0x%x != 0xAA55AA55\n",
+                hdr->sig);
+        exit(1);
+    }
 
     return (hdr);
 }
 
 
-vtbl113 *get_vtbl(FILE *fp)
+vtbl113 *get_vtbl(FILE * fp)
 {
     vtbl113 *vtbl = NULL;
     int sz, rd;
@@ -37,11 +39,14 @@ vtbl113 *get_vtbl(FILE *fp)
         exit(1);
     }
     if ((rd = fread(vtbl, sz, 1, fp)) != 1) {
-        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd, sz);
-		exit(1);
-	}
-    if (strncasecmp((const char *)vtbl->tag, "VTBL", 4) != 0) { 
-        fprintf(stderr, "Missing 'VTBL' tag, invalid record at offset 0x%lx ", ftell(fp));
+        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd,
+                sz);
+        exit(1);
+    }
+    if (strncasecmp((const char *) vtbl->tag, "VTBL", 4) != 0) {
+        fprintf(stderr,
+                "Missing 'VTBL' tag, invalid record at offset 0x%lx ",
+                ftell(fp));
         exit(1);
     }
 
@@ -49,21 +54,22 @@ vtbl113 *get_vtbl(FILE *fp)
 }
 
 
-void disp_vtbl(vtbl113 *vtbl)
+void disp_vtbl(vtbl113 * vtbl)
 {
     int i, rd;
     char date[64];
     time_t timestamp;
     struct tm *tm;
 
-    fprintf(stdout, "Label: %.44s  \nVTBL volume contains %u logical segments\n",
-           vtbl->desc, vtbl->nseg);
-    
-    timestamp = (time_t)vtbl->date;
+    fprintf(stdout,
+            "Label: %.44s  \nVTBL volume contains %u logical segments\n",
+            vtbl->desc, vtbl->nseg);
+
+    timestamp = (time_t) vtbl->date;
     tm = localtime(&timestamp);
     strftime(date, sizeof(date), "%m/%Y/%d %H:%M:%S", tm);
     fprintf(stdout, "created: %s\n", date);
-   
+
     fprintf(stdout, "flag 0x%x:\n", vtbl->flag);
     for (i = 0, rd = 1; i < 5; i++) {
         if (rd & vtbl->flag) {
@@ -73,81 +79,87 @@ void disp_vtbl(vtbl113 *vtbl)
         }
         rd = rd << 1;
     }
-   
-    if ((vtbl->flag & 1) == 0)  /* generic, not vendor specific */
-    {
+
+    if ((vtbl->flag & 1) == 0) {        /* generic, not vendor specific */
         /*
          * fields after flag not valid if vendor specific
          * ignore quad word, assume vtbl->dataSz[1] == 0
          */
-        fprintf(stdout, "version: %0x:%0x\n", vtbl->rev_major, vtbl->rev_minor);
-        fprintf(stdout, "dir size 0x%x data size 0x%x\n", vtbl->dirSz, vtbl->dataSz[0]);
-        fprintf(stdout, "QFA physical start block 0x%x end block 0x%x\n", vtbl->start, vtbl->end);
+        fprintf(stdout, "version: %0x:%0x\n", vtbl->rev_major,
+                vtbl->rev_minor);
+        fprintf(stdout, "dir size 0x%x data size 0x%x\n", vtbl->dirSz,
+                vtbl->dataSz[0]);
+        fprintf(stdout, "QFA physical start block 0x%x end block 0x%x\n",
+                vtbl->start, vtbl->end);
         fprintf(stdout, "compression byte 0x%x\n", vtbl->comp);
         if (vtbl->comp & 0x80)
-            fprintf(stdout, "Compression used, type 0x%x\n", vtbl->comp & 0x3f);
+            fprintf(stdout, "Compression used, type 0x%x\n",
+                    vtbl->comp & 0x3f);
         if (vtbl->OStype < 8)
             fprintf(stdout, "OS type: d => %s\n", OStype[vtbl->OStype]);
     }
 }
 
-cseg_head *get_segment(FILE *fp)
+cseg_head *get_segment(FILE * fp)
 {
     int sz, rd;
     cseg_head *seg_head;
-    
+
     sz = sizeof(cseg_head);
     if ((seg_head = (cseg_head *) malloc(sz)) == NULL) {
         fprintf(stderr, "Failed to allocate space for cseg_head\n");
         exit(1);
     }
     if ((rd = fread(seg_head, sz, 1, fp)) != 1) {
-        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd, sz);
-		exit(1);
-	}
-   
+        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd,
+                sz);
+        exit(1);
+    }
+
     return (seg_head);
 }
 
 
-int main(void) {
+int main(void)
+{
 
-	FILE *infp, *outfp;
-   
-	fhead113 *fhead1, *fhead2;
-	vtbl113 *vtbl;
+    FILE *infp, *outfp;
+
+    fhead113 *fhead1, *fhead2;
+    vtbl113 *vtbl;
     cseg_head *seg_head;
     int sn = 0;
 
-	if (!(infp = fopen("../Image.113", "rb"))) {
-		fprintf(stderr, "Can't open input file '../Image.113'\n");
-		exit(1);
-	}
+    if (!(infp = fopen("../Image.113", "rb"))) {
+        fprintf(stderr, "Can't open input file '../Image.113'\n");
+        exit(1);
+    }
 
-	fhead1 = get_fheader(infp);
+    fhead1 = get_fheader(infp);
 
-	fseek(infp, SEG_SZ, SEEK_SET);
-    if(ftell(infp) != SEG_SZ) {
-    	fprintf(stderr, "Unable to seek to second header: %ld (%ld)\n", ftell(infp), SEG_SZ);
-		exit(1);
-	}
-	fhead2 = get_fheader(infp);
+    fseek(infp, SEG_SZ, SEEK_SET);
+    if (ftell(infp) != SEG_SZ) {
+        fprintf(stderr, "Unable to seek to second header: %ld (%ld)\n",
+                ftell(infp), SEG_SZ);
+        exit(1);
+    }
+    fhead2 = get_fheader(infp);
 
 
 
     fseek(infp, 2 * SEG_SZ, SEEK_SET);
-    if(ftell(infp) != 2 * SEG_SZ ) {
+    if (ftell(infp) != 2 * SEG_SZ) {
         fprintf(stderr, "Unable to seek to vtbl\n");
     }
-	vtbl = get_vtbl(infp);
-    disp_vtbl(vtbl); 
+    vtbl = get_vtbl(infp);
+    disp_vtbl(vtbl);
 
     /*
      * Iterate through segments
      */
     if (vtbl->comp) {
         fprintf(stderr, "File is compressed\n");
-   
+
         if (!(outfp = fopen("dcomp.out", "wb"))) {
             fprintf(stderr, "Can't ouput dcomp.out for output\n");
             exit(1);
@@ -157,25 +169,24 @@ int main(void) {
          * compression flag off
          */
 
-        while( sn++ < fhead1->blkcnt ) {
+        while (sn++ < fhead1->blkcnt) {
             fseek(infp, (2 + sn) * SEG_SZ, SEEK_SET);
-            if(ftell(infp) != (2 + sn) * SEG_SZ ) {
+            if (ftell(infp) != (2 + sn) * SEG_SZ) {
                 fprintf(stderr, "Unable to seek to compressed segment\n");
             }
             seg_head = get_segment(infp);
             fprintf(stderr, "Reading compressed sector %d\n", sn);
             free(seg_head);
         }
-    }
-    else {
+    } else {
         fprintf(stderr, "File is not compressed\n");
     }
 
-	free(fhead1);
+    free(fhead1);
     free(fhead2);
-	free(vtbl);
-	fclose(infp);
-	fclose(outfp);
+    free(vtbl);
+    fclose(infp);
+    fclose(outfp);
 
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
