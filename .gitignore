@@ -2,6 +2,9 @@ iocfg
 slib
 rd113
 vtbl
+vtbl64
 *.o
 *~
+dcomp.out
+cat.out
 tags
