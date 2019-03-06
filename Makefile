@@ -40,7 +40,7 @@ PROG = vtbl64
 $(PROG): $(PROG).o
 	gcc  -g -o $@ $^
 
-$(PROG).o: $(PROG).c
+$(PROG).o: $(PROG).c $(PROG).h
 	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
 
 .PHONY: clean

@@ -5,6 +5,10 @@ typedef unsigned int DWORD;
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
 
+/*
+ * When you have time, remove the packing and just populate each member
+ * individually
+ */
 #pragma pack(push, 1)
 typedef struct {
     DWORD sig;                  /* signature value should be 0xAA55AA55 definded in qicdcomp.h as IOHEAD_SIG */
@@ -22,6 +26,10 @@ typedef struct {
 #pragma pack(pop)
 
 
+/*
+ * When you have time, remove the packing and just populate each member
+ * individually
+ */
 #pragma pack(push, 1)
 typedef struct {
     BYTE tag[4];                /* should be 'VTBL' */
@@ -45,6 +53,20 @@ typedef struct {
     BYTE res2[2];               /* more reserved stuff */
 } vtbl113;
 #pragma pack(pop)
+
+
+/*
+ * When you have time, remove the packing and just populate each member
+ * individually
+ */
+#pragma pack(push, 1)
+typedef struct {
+    DWORD cum_sz;               /* cumlative uncompressed bytes at end this segment */
+    DWORD cum_sz_hi;            /* normally zero. High order DWORD of above for > 4Gb */
+    WORD seg_sz;                /* physical bytes in this segment, offset to next header */
+} cseg_head;
+#pragma pack(pop)
+
 
 char *flagbits[] = {
     "Vendor specific volume",

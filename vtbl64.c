@@ -7,15 +7,14 @@
 fhead113 *get_fheader(FILE *fp)
 {
     fhead113 *hdr = NULL;
-    int sz, rd;
+    int rd;
 
-    sz = sizeof(fhead113);
-    if ((hdr = (fhead113 *) malloc(sz)) == NULL) {
+    if ((hdr = (fhead113 *) malloc(FHDR_SZ)) == NULL) {
         fprintf(stderr, "Failed to allocate space for header\n");
         exit(1);
     }
     if ((rd = fread(hdr, FHDR_SZ, 1, fp)) != 1) {
-        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte header\n", rd, sz);
+        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte header\n", rd, FHDR_SZ);
 		exit(1);
 	}
     if (hdr->sig != 0xAA55AA55) {
@@ -37,10 +36,14 @@ vtbl113 *get_vtbl(FILE *fp)
         fprintf(stderr, "Failed to allocate space for vtbl\n");
         exit(1);
     }
-    if ((rd = fread(vtbl, sizeof(vtbl), 1, fp)) != 1) {
+    if ((rd = fread(vtbl, sz, 1, fp)) != 1) {
         fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd, sz);
 		exit(1);
 	}
+    if (strncasecmp((const char *)vtbl->tag, "VTBL", 4) != 0) { 
+        fprintf(stderr, "Missing 'VTBL' tag, invalid record at offset 0x%lx ", ftell(fp));
+        exit(1);
+    }
 
     return (vtbl);
 }
@@ -88,50 +91,91 @@ void disp_vtbl(vtbl113 *vtbl)
     }
 }
 
+cseg_head *get_segment(FILE *fp)
+{
+    int sz, rd;
+    cseg_head *seg_head;
+    
+    sz = sizeof(cseg_head);
+    if ((seg_head = (cseg_head *) malloc(sz)) == NULL) {
+        fprintf(stderr, "Failed to allocate space for cseg_head\n");
+        exit(1);
+    }
+    if ((rd = fread(seg_head, sz, 1, fp)) != 1) {
+        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd, sz);
+		exit(1);
+	}
+   
+    return (seg_head);
+}
+
 
 int main(void) {
 
-	FILE *fp;
+	FILE *infp, *outfp;
    
 	fhead113 *fhead1, *fhead2;
 	vtbl113 *vtbl;
+    cseg_head *seg_head;
+    int sn = 0;
 
-	if (!(fp = fopen("../Image.113", "rb"))) {
+	if (!(infp = fopen("../Image.113", "rb"))) {
 		fprintf(stderr, "Can't open input file '../Image.113'\n");
 		exit(1);
 	}
 
-	fhead1 = get_fheader(fp);
+	fhead1 = get_fheader(infp);
 
-	fseek(fp, SEG_SZ, SEEK_SET);
-    if(ftell(fp) != SEG_SZ) {
-    	fprintf(stderr, "Unable to seek to second header: %ld (%ld)\n", ftell(fp), SEG_SZ);
+	fseek(infp, SEG_SZ, SEEK_SET);
+    if(ftell(infp) != SEG_SZ) {
+    	fprintf(stderr, "Unable to seek to second header: %ld (%ld)\n", ftell(infp), SEG_SZ);
 		exit(1);
 	}
+	fhead2 = get_fheader(infp);
 
-	fhead2 = get_fheader(fp);
 
 
-	vtbl = get_vtbl(fp);
-
-    fseek(fp, 2 * SEG_SZ, SEEK_SET);
-    if(ftell(fp) != 2 * SEG_SZ ) {
+    fseek(infp, 2 * SEG_SZ, SEEK_SET);
+    if(ftell(infp) != 2 * SEG_SZ ) {
         fprintf(stderr, "Unable to seek to vtbl\n");
     }
-	if (fread(vtbl, sizeof(*vtbl), 1, fp) != 1) {
-       	printf("\nfailed to get VTBL");
-        exit(1);
-    }
-    if (strncasecmp((const char *)vtbl->tag, "VTBL", 4) != 0) { 
-        fprintf(stderr, "Missing 'VTBL' tag, invalid record at offset 0x%lx ", ftell(fp));
-        exit(1);
-    }
+	vtbl = get_vtbl(infp);
     disp_vtbl(vtbl); 
+
+    /*
+     * Iterate through segments
+     */
+    if (vtbl->comp) {
+        fprintf(stderr, "File is compressed\n");
+   
+        if (!(outfp = fopen("dcomp.out", "wb"))) {
+            fprintf(stderr, "Can't ouput dcomp.out for output\n");
+            exit(1);
+        }
+        /**
+         * We should probably just dump the headers here, but with the
+         * compression flag off
+         */
+
+        while( sn++ < fhead1->blkcnt ) {
+            fseek(infp, (2 + sn) * SEG_SZ, SEEK_SET);
+            if(ftell(infp) != (2 + sn) * SEG_SZ ) {
+                fprintf(stderr, "Unable to seek to compressed segment\n");
+            }
+            seg_head = get_segment(infp);
+            fprintf(stderr, "Reading compressed sector %d\n", sn);
+            free(seg_head);
+        }
+    }
+    else {
+        fprintf(stderr, "File is not compressed\n");
+    }
 
 	free(fhead1);
     free(fhead2);
 	free(vtbl);
-	fclose(fp);
+	fclose(infp);
+	fclose(outfp);
 
 	return EXIT_SUCCESS;
 }
