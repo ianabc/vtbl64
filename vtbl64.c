@@ -119,6 +119,10 @@ cseg_head *get_segment(FILE * fp)
     return (seg_head);
 }
 
+unsigned int decomp_seg(FILE *fp)
+{
+    return 0;
+}
 
 int main(void)
 {
@@ -129,6 +133,7 @@ int main(void)
     vtbl113 *vtbl;
     cseg_head *seg_head;
     int sn = 0;
+    unsigned int seg_sz, lseg_sz, comp_rd;
 
     if (!(infp = fopen("../Image.113", "rb"))) {
         fprintf(stderr, "Can't open input file '../Image.113'\n");
@@ -169,22 +174,41 @@ int main(void)
          * off
          */
 
-        while (sn++ < fhead1->blkcnt) {
+        while (sn++ < fhead2->blkcnt) {
+
             fseek(infp, (2 + sn) * SEG_SZ, SEEK_SET);
             if (ftell(infp) != (2 + sn) * SEG_SZ) {
                 fprintf(stderr, "Unable to seek to compressed segment\n");
             }
             seg_head = get_segment(infp);
-            fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n", sn, seg_head->cum_sz, seg_head->cum_sz_hi, seg_head->seg_sz);
-            if (seg_head->cum_sz == 0 && seg_head->cum_sz_hi == 0) {
+            fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n", 
+                    sn, seg_head->cum_sz, seg_head->cum_sz_hi, seg_head->seg_sz);
+
+            if (sn > 3 && seg_head->cum_sz == 0 && seg_head->cum_sz_hi == 0) {
                 fprintf(stderr, "Catalog found in segment %u\n", sn);
+                break;
+            }
+
+            seg_sz = seg_head->seg_sz;
+            /*
+             * Decompress the segment
+             */
+            comp_rd = decomp_seg(infp);
+            lseg_sz += comp_rd;
+
+
+            if(seg_sz & RAW_SEG) {
+                fprintf(stderr, "Raw Segment, not handled\n");
+                exit(1);
             }
             free(seg_head);
         }
+        /*
+         * Still have the catalog to deal with
+         */
     } else {
         fprintf(stderr, "File is not compressed\n");
     }
-
     free(fhead1);
     free(fhead2);
     free(vtbl);

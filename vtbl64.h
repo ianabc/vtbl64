@@ -1,6 +1,8 @@
 #define FHDR_SZ 0x90
 #define SEG_SZ 29696L
 
+#define RAW_SEG 0x8000
+
 typedef unsigned int DWORD;
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
