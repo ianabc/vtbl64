@@ -165,8 +165,8 @@ int main(void)
             exit(1);
         }
         /**
-         * We should probably just dump the headers here, but with the
-         * compression flag off
+         * Maybe dump the existing headers here, but with the compression flag
+         * off
          */
 
         while (sn++ < fhead1->blkcnt) {
@@ -175,7 +175,10 @@ int main(void)
                 fprintf(stderr, "Unable to seek to compressed segment\n");
             }
             seg_head = get_segment(infp);
-            fprintf(stderr, "Reading compressed sector %d\n", sn);
+            fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n", sn, seg_head->cum_sz, seg_head->cum_sz_hi, seg_head->seg_sz);
+            if (seg_head->cum_sz == 0 && seg_head->cum_sz_hi == 0) {
+                fprintf(stderr, "Catalog found in segment %u\n", sn);
+            }
             free(seg_head);
         }
     } else {
