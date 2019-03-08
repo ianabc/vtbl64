@@ -221,6 +221,45 @@ int main(void)
                 break;
             }
 
+            /*
+             * e.g. Segment 4 will look like `hexdump -s $((4 * 0x7400) ../Image.113`
+             *  001d000  | da76 0000 0000 0000 73e9 0321 2800 c801
+             *
+             * 0xda76 is the uncompressed size of the segment 0x73e9 is the
+             * compressed size of the 4th sector
+             *
+             * for segment 5, we have something like
+             *  0024400  | 7af3 0001 0000 0000 73eb 0228 6411 2082
+             *
+             *  Where 0x17af3 is the cumulative decompressed count and as
+             *  before 0x73eb is the compressed size of the 5th segment.
+             *
+             * For decompression we want to take the compressed buffer and run
+             * it through the decompression algorithm until the decompressed
+             * size matches the value from the next decompression header. The downside is that 
+             * sooner or later this scheme will start to overflow. Also, it
+             * seems to suggest that you should read your target segment and
+             * also the header of the next segment to check you are
+             * decompressing it correctly. Maybe this is more of a footer than
+             * a header.
+             *
+             * Shit hits the fan at segment 34644, not sure why yet, but maybe
+             * there is an errant compression terminator in the data stream.
+             *
+             * For the overflow, by inspection it seems to happen around
+             * segment 81071 and it the decompressed block count just seems to
+             * wrap round.
+             *
+             *  hexdump -s $((81071 * 0x7400)) -n 0x10 ../Image.113 
+             *  8f7f4c00 | d440 ffff 0000 0000 73ec 2200 824f 2041
+             *
+             *  hexdump -s $((81072 * 0x7400)) -n 0x10 ../Image.113 
+             *  8f7fc000 | 6d85 0000 0001 0000 73e9 1154 0f80 0866
+             *
+             * Oxffffd440 == 4294956096
+             * 0x00006d85 == 28037
+             *
+             */
             seg_sz = seg_head->seg_sz;
             /*
              * Decompress the segment
