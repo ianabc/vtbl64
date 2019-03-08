@@ -7,7 +7,7 @@
 fhead113 *get_fheader(FILE * fp)
 {
     fhead113 *hdr = NULL;
-    int rd;
+    unsigned int rd;
 
     if ((hdr = (fhead113 *) malloc(FHDR_SZ)) == NULL) {
         fprintf(stderr, "Failed to allocate space for header\n");
@@ -31,7 +31,7 @@ fhead113 *get_fheader(FILE * fp)
 vtbl113 *get_vtbl(FILE * fp)
 {
     vtbl113 *vtbl = NULL;
-    int sz, rd;
+    unsigned int sz, rd;
 
     sz = sizeof(vtbl113);
     if ((vtbl = (vtbl113 *) malloc(sz)) == NULL) {
@@ -56,7 +56,7 @@ vtbl113 *get_vtbl(FILE * fp)
 
 void disp_vtbl(vtbl113 * vtbl)
 {
-    int i, rd;
+    unsigned int i, rd;
     char date[64];
     time_t timestamp;
     struct tm *tm;
@@ -100,9 +100,9 @@ void disp_vtbl(vtbl113 * vtbl)
     }
 }
 
-cseg_head *get_segment(FILE * fp)
+cseg_head *get_seghead(FILE * fp)
 {
-    int sz, rd;
+    unsigned int sz, rd;
     cseg_head *seg_head;
 
     sz = sizeof(cseg_head);
@@ -119,7 +119,27 @@ cseg_head *get_segment(FILE * fp)
     return (seg_head);
 }
 
-unsigned int decomp_seg(FILE *fp)
+
+void get_segdata(FILE *infp, BYTE *cbuf, unsigned int sn, unsigned int seg_sz) {
+
+    unsigned int rd;
+
+    fseek(infp, (sn + 3) * SEG_SZ, SEEK_SET);
+    if (ftell(infp) != (sn + 3) *SEG_SZ) {
+        fprintf(stderr, "Unable to seek to compressed segment: %ld (%ld)\n",
+                ftell(infp), (sn + 3) *SEG_SZ);
+        exit(1);
+    }
+    if ((rd = fread(cbuf, SEG_SZ, 1, infp)) != 1) {
+        fprintf(stderr, "Only read 0x%x bytes of 0x%lx compressed segment\n", rd, SEG_SZ);
+        exit(1);
+    }
+    /*
+     * Look for the end of compressed data marker
+     */
+}
+
+unsigned int decomp_seg(BYTE *cbuf, unsigned int seg_sz)
 {
     return 0;
 }
@@ -132,7 +152,8 @@ int main(void)
     fhead113 *fhead1, *fhead2;
     vtbl113 *vtbl;
     cseg_head *seg_head;
-    int sn = 0;
+    BYTE *cbuf;
+    unsigned int sn = 0;
     unsigned int seg_sz, lseg_sz, comp_rd;
 
     if (!(infp = fopen("../Image.113", "rb"))) {
@@ -173,18 +194,21 @@ int main(void)
          * Maybe dump the existing headers here, but with the compression flag
          * off
          */
-
+        if ((cbuf = (BYTE *) malloc(SEG_SZ)) == NULL) {
+            fprintf(stderr, "Failed to allocate space for compress buffer\n");
+            exit(1);
+        }
         while (sn++ < fhead2->blkcnt) {
 
             fseek(infp, (2 + sn) * SEG_SZ, SEEK_SET);
             if (ftell(infp) != (2 + sn) * SEG_SZ) {
                 fprintf(stderr, "Unable to seek to compressed segment\n");
             }
-            seg_head = get_segment(infp);
+            seg_head = get_seghead(infp);
             fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n", 
                     sn, seg_head->cum_sz, seg_head->cum_sz_hi, seg_head->seg_sz);
 
-            if (sn > 3 && seg_head->cum_sz == 0 && seg_head->cum_sz_hi == 0) {
+            if (sn != 1 && seg_head->cum_sz == 0 && seg_head->cum_sz_hi == 0) {
                 fprintf(stderr, "Catalog found in segment %u\n", sn);
                 break;
             }
@@ -193,7 +217,8 @@ int main(void)
             /*
              * Decompress the segment
              */
-            comp_rd = decomp_seg(infp);
+            get_segdata(infp, cbuf, sn, seg_sz);
+            comp_rd = decomp_seg(cbuf, seg_sz);
             lseg_sz += comp_rd;
 
 
@@ -203,6 +228,7 @@ int main(void)
             }
             free(seg_head);
         }
+        free(cbuf);
         /*
          * Still have the catalog to deal with
          */
