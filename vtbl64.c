@@ -120,18 +120,23 @@ cseg_head *get_seghead(FILE * fp)
 }
 
 
-void get_segdata(FILE *infp, BYTE *cbuf, unsigned int sn, unsigned int seg_sz) {
+void get_segdata(FILE * infp, BYTE * cbuf, unsigned int sn,
+                 unsigned int seg_sz)
+{
 
     unsigned int rd;
 
     fseek(infp, (sn + 3) * SEG_SZ, SEEK_SET);
-    if (ftell(infp) != (sn + 3) *SEG_SZ) {
-        fprintf(stderr, "Unable to seek to compressed segment: %ld (%ld)\n",
-                ftell(infp), (sn + 3) *SEG_SZ);
+    if (ftell(infp) != (sn + 3) * SEG_SZ) {
+        fprintf(stderr,
+                "Unable to seek to compressed segment: %ld (%ld)\n",
+                ftell(infp), (sn + 3) * SEG_SZ);
         exit(1);
     }
     if ((rd = fread(cbuf, SEG_SZ, 1, infp)) != 1) {
-        fprintf(stderr, "Only read 0x%x bytes of 0x%lx compressed segment\n", rd, SEG_SZ);
+        fprintf(stderr,
+                "Only read 0x%x bytes of 0x%lx compressed segment\n", rd,
+                SEG_SZ);
         exit(1);
     }
     /*
@@ -139,7 +144,7 @@ void get_segdata(FILE *infp, BYTE *cbuf, unsigned int sn, unsigned int seg_sz) {
      */
 }
 
-unsigned int decomp_seg(BYTE *cbuf, unsigned int seg_sz)
+unsigned int decomp_seg(BYTE * cbuf, unsigned int seg_sz)
 {
     return 0;
 }
@@ -195,7 +200,8 @@ int main(void)
          * off
          */
         if ((cbuf = (BYTE *) malloc(SEG_SZ)) == NULL) {
-            fprintf(stderr, "Failed to allocate space for compress buffer\n");
+            fprintf(stderr,
+                    "Failed to allocate space for compress buffer\n");
             exit(1);
         }
         while (sn++ < fhead2->blkcnt) {
@@ -205,10 +211,12 @@ int main(void)
                 fprintf(stderr, "Unable to seek to compressed segment\n");
             }
             seg_head = get_seghead(infp);
-            fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n", 
-                    sn, seg_head->cum_sz, seg_head->cum_sz_hi, seg_head->seg_sz);
+            fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n",
+                    sn, seg_head->cum_sz, seg_head->cum_sz_hi,
+                    seg_head->seg_sz);
 
-            if (sn != 1 && seg_head->cum_sz == 0 && seg_head->cum_sz_hi == 0) {
+            if (sn != 1 && seg_head->cum_sz == 0
+                && seg_head->cum_sz_hi == 0) {
                 fprintf(stderr, "Catalog found in segment %u\n", sn);
                 break;
             }
@@ -222,7 +230,7 @@ int main(void)
             lseg_sz += comp_rd;
 
 
-            if(seg_sz & RAW_SEG) {
+            if (seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
                 exit(1);
             }
