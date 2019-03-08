@@ -243,6 +243,7 @@ int main(void)
     } else {
         fprintf(stderr, "File is not compressed\n");
     }
+
     free(fhead1);
     free(fhead2);
     free(vtbl);
