@@ -208,7 +208,9 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     unsigned int bit_pos;
     unsigned int off, offset_bits, len, nibble;
     unsigned int i, j;
-    BYTE rbyte;
+    
+    BYTE hbuf[HBUF_SZ];
+    unsigned int hptr = 0;
 
     /*
      * Skip over header to 10th byte
@@ -217,7 +219,8 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
 
     while(bit_pos < (seg_sz - 3) * 8) {
         if (getbit(cbuf, &bit_pos) == 0) {
-            rbyte = getbyte(cbuf, &bit_pos);
+            hbuf[hptr] = getbyte(cbuf, &bit_pos);
+            hptr++;
         }
         else {
             /* A String */
