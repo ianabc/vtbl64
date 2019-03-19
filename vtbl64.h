@@ -1,7 +1,10 @@
 #define FHDR_SZ 0x90
-#define SEG_SZ 29696L
 
-#define RAW_SEG 0x8000
+#define RAW_SEG 0x8000          /* Mask for detecting raw segment */
+
+#define SEG_SZ 29696L           /* Segment size */
+#define MAX_SEG_SZ 63488L       /* Maximal compressed size (QIC-113 Rev.G) */
+#define HBUF_SZ 2048            /* History buffer */
 
 typedef unsigned int DWORD;
 typedef unsigned char BYTE;
@@ -13,8 +16,8 @@ typedef unsigned short WORD;
  */
 #pragma pack(push, 1)
 typedef struct {
-    DWORD sig;                  /* signature value should be 0xAA55AA55 definded in qicdcomp.h as IOHEAD_SIG */
-    WORD unkwn[3];              /* 3 unknow words often {0xFF,0x2,0} */
+    DWORD sig;                  /* signature value should be 0xAA55AA55 defended in qicdcomp.h as IOHEAD_SIG */
+    WORD unkwn[3];              /* 3 unknown words often {0xFF,0x2,0} */
     DWORD blkcnt;               /* appears to be a block count, not the same value in 1st & 2nd header, larger in 2nd */
     DWORD t1;                   /* a qic 113 date time value */
     DWORD t2;                   /* a qic 113 date time value    */
@@ -39,15 +42,15 @@ typedef struct {
     char desc[44];
     DWORD date;                 /* date and time created */
     BYTE flag;                  /* bitmap */
-    BYTE seq;                   /* multi catridge sequence # */
-    WORD rev_major, rev_minor;  /* revision numberrs */
+    BYTE seq;                   /* multi cartridge sequence # */
+    WORD rev_major, rev_minor;  /* revision numbers */
     BYTE vres[14];              /* reserved for vendor extensions */
     DWORD start, end;           /* physical QFA block numbers */
     BYTE passwd[8];             /* if not used, start with a 0 byte */
     DWORD dirSz;                /* size of file set directory region in bytes */
     DWORD dataSz[2];            /* total size of data region in bytes */
     BYTE OSver[2];              /* major and minor # */
-    BYTE sdrv[16];              /* source drive volume lable */
+    BYTE sdrv[16];              /* source drive volume label */
     BYTE ldev;                  /* logical dev file set originated from */
     BYTE res;                   /* should be 0 */
     BYTE comp;                  /* compression bitmap, 0 if not used */
@@ -63,7 +66,7 @@ typedef struct {
  */
 #pragma pack(push, 1)
 typedef struct {
-    DWORD cum_sz;               /* cumlative uncompressed bytes at end this segment */
+    DWORD cum_sz;               /* cumulative uncompressed bytes at end this segment */
     DWORD cum_sz_hi;            /* normally zero. High order DWORD of above for > 4Gb */
     WORD seg_sz;                /* physical bytes in this segment, offset to next header */
 } cseg_head;
