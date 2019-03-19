@@ -158,7 +158,7 @@ int flush_hbuf(FILE *fout, unsigned char *hbuf, int hptr)
 }
 
 
-int getbit(BYTE *cbuf, int bit_pos)
+int getbit(BYTE *cbuf, unsigned int *bit_pos)
 {
     /*
      * Get the value of the single bit at position bit_pos. This treats the
@@ -167,26 +167,23 @@ int getbit(BYTE *cbuf, int bit_pos)
      */
     unsigned char byte, shift;
 
-    shift = (8 - bit_pos % 8) - 1;
-    byte = cbuf[bit_pos / 8];
+    shift = (8 - *bit_pos % 8) - 1;
+    byte = cbuf[*bit_pos / 8];
 
+    (*bit_pos)++;
     return (byte & ( 1 << shift )) >> shift;
 }
 
 
-BYTE getbyte(BYTE *cbuf, int bit_pos)
+BYTE getbyte(BYTE *cbuf, unsigned int *bit_pos)
 {
     int i, ret;
-/*
-    if (bit_pos % 8 == 0) {
-        return cbuf[bit_pos / 8];
-    }
-*/
+    
     for(i = 0, ret=0; i < 8; i++) {
        /*
         * fprintf(stderr, "%d", getbit(cbuf, bit_pos));
         */
-       ret = (ret << 1) + getbit(cbuf, bit_pos++);
+       ret = (ret << 1) + getbit(cbuf, bit_pos);
     }
     fprintf(stderr, "0x%x ", ret);
 
@@ -208,20 +205,23 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     /*
      * Scan bits for 0x180
      */
-    unsigned int bit_pos = 80; /* Skip the header */
+    unsigned int bit_pos;
     unsigned int off, offset_bits, len, nibble;
     unsigned int i, j;
     BYTE rbyte;
 
+    /*
+     * Skip over header to 10th byte
+     */
+    bit_pos = 80;
+
     while(bit_pos < (seg_sz - 3) * 8) {
-        if (getbit(cbuf, bit_pos++) == 0) {
-            /* Raw Byte */
-            rbyte = getbyte(cbuf, bit_pos);
-            bit_pos += 8;
+        if (getbit(cbuf, &bit_pos) == 0) {
+            rbyte = getbyte(cbuf, &bit_pos);
         }
         else {
             /* A String */
-            if (getbit(cbuf, bit_pos++) == 0) {
+            if (getbit(cbuf, &bit_pos) == 0) {
                offset_bits = 11;
             }
             else
@@ -229,7 +229,7 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
 
 
             for(i = 0, off = 0; i < offset_bits; i++) 
-               off = (off << 1) + getbit(cbuf, bit_pos++);
+               off = (off << 1) + getbit(cbuf, &bit_pos);
 
             if ((offset_bits == 7) && (off == 0)) {
                 /* End of compression marker is 110000000 
@@ -259,7 +259,7 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
             for (j = 0; j < 2; j++) {
                 nibble = 0;
                 for (i = 0; i < 2; i++) {
-                    nibble = (nibble << 1) + getbit(cbuf, bit_pos++);
+                    nibble = (nibble << 1) + getbit(cbuf, &bit_pos);
                 }
                 if (nibble < 3) {
                     len += nibble;
@@ -272,7 +272,7 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 while (1) {
                     nibble = 0;
                     for (i = 0; i < 4; i++) {
-                        nibble = (nibble << 1) + getbit(cbuf, bit_pos++);
+                        nibble = (nibble << 1) + getbit(cbuf, &bit_pos);
                     }
                     if (nibble < 15) {
                         len += nibble;
@@ -284,6 +284,10 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 }
             }
             fprintf(stderr, "\nString: len = %d offset %d\n", len, off);
+            /*
+             * Check where offset would put us in the history buffer and wrap
+             * around if necessary
+             */
         }
     }
     return 0;
