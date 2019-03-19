@@ -4,6 +4,7 @@
 #include <time.h>
 #include "vtbl64.h"
 
+
 fhead113 *get_fheader(FILE * fp)
 {
     fhead113 *hdr = NULL;
@@ -100,6 +101,7 @@ void disp_vtbl(vtbl113 * vtbl)
     }
 }
 
+
 cseg_head *get_seghead(FILE * fp)
 {
     unsigned int sz, rd;
@@ -123,7 +125,9 @@ cseg_head *get_seghead(FILE * fp)
 void get_segdata(FILE * infp, BYTE * cbuf, unsigned int sn,
                  unsigned int seg_sz)
 {
-
+    /*
+     * Read the whole segment, header included
+     */
     unsigned int rd;
 
     fseek(infp, (sn + 3) * SEG_SZ, SEEK_SET);
@@ -139,15 +143,152 @@ void get_segdata(FILE * infp, BYTE * cbuf, unsigned int sn,
                 SEG_SZ);
         exit(1);
     }
-    /*
-     * Look for the end of compressed data marker
-     */
 }
 
-unsigned int decomp_seg(BYTE * cbuf, unsigned int seg_sz)
+
+int flush_hbuf(FILE *fout, unsigned char *hbuf, int hptr)
 {
+    int wr;
+    if ((wr = fwrite(hbuf, 1, hptr, fout)) != hptr) {
+        fprintf(stderr, "Error writting output file\n");
+        exit(2);
+    }
+    hptr = 0;
+    return wr;
+}
+
+
+int getbit(BYTE *cbuf, int bit_pos)
+{
+    /*
+     * Get the value of the single bit at position bit_pos. This treats the
+     * entire data region as a bit string.
+     *
+     */
+    unsigned char byte, shift;
+
+    shift = (8 - bit_pos % 8) - 1;
+    byte = cbuf[bit_pos / 8];
+
+    return (byte & ( 1 << shift )) >> shift;
+}
+
+
+BYTE getbyte(BYTE *cbuf, int bit_pos)
+{
+    int i, ret;
+/*
+    if (bit_pos % 8 == 0) {
+        return cbuf[bit_pos / 8];
+    }
+*/
+    for(i = 0, ret=0; i < 8; i++) {
+       /*
+        * fprintf(stderr, "%d", getbit(cbuf, bit_pos));
+        */
+       ret = (ret << 1) + getbit(cbuf, bit_pos++);
+    }
+    fprintf(stderr, "0x%x ", ret);
+
+    return ret;
+}
+
+
+unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
+{
+    /*
+     * Decompress binary data according to QIC-122
+     *
+     * Start of data occurs at the third byte of cbuf
+     * End of data marked by 0x180 within 18 bytes of end of cbuf, right padded
+     * with zeros to fill seg_sz should match the difference of these values
+     * Scan backward from the end for marker then check size
+     */
+
+    /*
+     * Scan bits for 0x180
+     */
+    unsigned int bit_pos = 80; /* Skip the header */
+    unsigned int off, offset_bits, len, nibble;
+    unsigned int i, j;
+    BYTE rbyte;
+
+    while(bit_pos < (seg_sz - 3) * 8) {
+        if (getbit(cbuf, bit_pos++) == 0) {
+            /* Raw Byte */
+            rbyte = getbyte(cbuf, bit_pos);
+            bit_pos += 8;
+        }
+        else {
+            /* A String */
+            if (getbit(cbuf, bit_pos++) == 0) {
+               offset_bits = 11;
+            }
+            else
+               offset_bits = 7;
+
+
+            for(i = 0, off = 0; i < offset_bits; i++) 
+               off = (off << 1) + getbit(cbuf, bit_pos++);
+
+            if ((offset_bits == 7) && (off == 0)) {
+                /* End of compression marker is 110000000 
+                 * i.e. A string with a 7 bit offset of zero
+                 */
+                fprintf(stderr, "End of compression marker found at 0x%08x\n", bit_pos);
+            }
+
+            /* Examine the length of the match
+             * 00 - length 2
+             * 01 - length 3
+             * 10 - length 4
+             * 11 00 - length 5
+             * 11 01 - length 6
+             * 11 10 - length 7
+             * 11 11 0000 - length 8
+             * 11 11 0001 - length 9
+             * ...
+             * 11 11 1110 - length 22
+             * 11 11 1111 0000 - length 23
+             * ...
+             *
+             * So for strings longer than 7, just check if the last 4 bits are less
+             * than 15.
+             */
+            len = 2;
+            for (j = 0; j < 2; j++) {
+                nibble = 0;
+                for (i = 0; i < 2; i++) {
+                    nibble = (nibble << 1) + getbit(cbuf, bit_pos++);
+                }
+                if (nibble < 3) {
+                    len += nibble;
+                    break;
+                }
+                else
+                    len += 3;
+            }
+            if (len == 8) {
+                while (1) {
+                    nibble = 0;
+                    for (i = 0; i < 4; i++) {
+                        nibble = (nibble << 1) + getbit(cbuf, bit_pos++);
+                    }
+                    if (nibble < 15) {
+                        len += nibble;
+                        break;
+                    }
+                    else
+                        len += 15;
+                    j++;
+                }
+            }
+            fprintf(stderr, "\nString: len = %d offset %d\n", len, off);
+        }
+    }
     return 0;
 }
+
 
 int main(void)
 {
@@ -158,8 +299,10 @@ int main(void)
     vtbl113 *vtbl;
     cseg_head *seg_head;
     BYTE *cbuf;
+    BYTE *dbuf;
     unsigned int sn = 0;
-    unsigned int seg_sz, lseg_sz, comp_rd;
+    unsigned int lseg_sz, comp_rd;
+    unsigned int decomp_sz = 0;
 
     if (!(infp = fopen("../Image.113", "rb"))) {
         fprintf(stderr, "Can't open input file '../Image.113'\n");
@@ -179,8 +322,7 @@ int main(void)
 
 
     fseek(infp, 2 * SEG_SZ, SEEK_SET);
-    if (ftell(infp) != 2 * SEG_SZ) {
-        fprintf(stderr, "Unable to seek to vtbl\n");
+    if (ftell(infp) != 2 * SEG_SZ) { fprintf(stderr, "Unable to seek to vtbl\n");
     }
     vtbl = get_vtbl(infp);
     disp_vtbl(vtbl);
@@ -204,10 +346,15 @@ int main(void)
                     "Failed to allocate space for compress buffer\n");
             exit(1);
         }
-        while (sn++ < fhead2->blkcnt) {
+        if ((dbuf = (BYTE *) malloc(MAX_SEG_SZ)) == NULL) {
+            fprintf(stderr,
+                    "Failed to allocate space for uncompressed buffer\n");
+            exit(1);
+        }
+        while (sn < fhead2->blkcnt) {
 
-            fseek(infp, (2 + sn) * SEG_SZ, SEEK_SET);
-            if (ftell(infp) != (2 + sn) * SEG_SZ) {
+            fseek(infp, (3 + sn) * SEG_SZ, SEEK_SET);
+            if (ftell(infp) != (3 + sn) * SEG_SZ) {
                 fprintf(stderr, "Unable to seek to compressed segment\n");
             }
             seg_head = get_seghead(infp);
@@ -215,67 +362,33 @@ int main(void)
                     sn, seg_head->cum_sz, seg_head->cum_sz_hi,
                     seg_head->seg_sz);
 
-            if (sn != 1 && seg_head->cum_sz == 0
+            if (sn != 0 && seg_head->cum_sz == 0
                 && seg_head->cum_sz_hi == 0) {
                 fprintf(stderr, "Catalog found in segment %u\n", sn);
                 break;
             }
 
+            get_segdata(infp, cbuf, sn, seg_head->seg_sz);
+            comp_rd = decomp_seg(cbuf, dbuf, seg_head->seg_sz);
             /*
-             * e.g. Segment 4 will look like `hexdump -s $((4 * 0x7400) ../Image.113`
-             *  001d000  | da76 0000 0000 0000 73e9 0321 2800 c801
-             *
-             * 0xda76 is the uncompressed size of the segment 0x73e9 is the
-             * compressed size of the 4th sector
-             *
-             * for segment 5, we have something like
-             *  0024400  | 7af3 0001 0000 0000 73eb 0228 6411 2082
-             *
-             *  Where 0x17af3 is the cumulative decompressed count and as
-             *  before 0x73eb is the compressed size of the 5th segment.
-             *
-             * For decompression we want to take the compressed buffer and run
-             * it through the decompression algorithm until the decompressed
-             * size matches the value from the next decompression header. The downside is that 
-             * sooner or later this scheme will start to overflow. Also, it
-             * seems to suggest that you should read your target segment and
-             * also the header of the next segment to check you are
-             * decompressing it correctly. Maybe this is more of a footer than
-             * a header.
-             *
-             * Shit hits the fan at segment 34644, not sure why yet, but maybe
-             * there is an errant compression terminator in the data stream.
-             *
-             * For the overflow, by inspection it seems to happen around
-             * segment 81071 and it the decompressed block count just seems to
-             * wrap round.
-             *
-             *  hexdump -s $((81071 * 0x7400)) -n 0x10 ../Image.113 
-             *  8f7f4c00 | d440 ffff 0000 0000 73ec 2200 824f 2041
-             *
-             *  hexdump -s $((81072 * 0x7400)) -n 0x10 ../Image.113 
-             *  8f7fc000 | 6d85 0000 0001 0000 73e9 1154 0f80 0866
-             *
-             * Oxffffd440 == 4294956096
-             * 0x00006d85 == 28037
-             *
+             * The total size decompressed should match the header of in the
+             * next compressed segment (eventually we need to care about
+             * overflows here for 4GB+ archives
              */
-            seg_sz = seg_head->seg_sz;
-            /*
-             * Decompress the segment
-             */
-            get_segdata(infp, cbuf, sn, seg_sz);
-            comp_rd = decomp_seg(cbuf, seg_sz);
+            decomp_sz += comp_rd;
+
             lseg_sz += comp_rd;
 
 
-            if (seg_sz & RAW_SEG) {
+            if (seg_head->seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
                 exit(1);
             }
+            sn++;
             free(seg_head);
         }
         free(cbuf);
+        free(dbuf);
         /*
          * Still have the catalog to deal with
          */
