@@ -1,14 +1,18 @@
-#define FHDR_SZ 0x90
+#ifndef _VTBL64_H
+#define _VTBL64_H 1
 
+#include <stdint.h>
+
+#define FHDR_SZ 0x90            /* File header size */
 #define RAW_SEG 0x8000          /* Mask for detecting raw segment */
 
 #define SEG_SZ 29696L           /* Segment size */
 #define MAX_SEG_SZ 63488L       /* Maximal compressed size (QIC-113 Rev.G) */
 #define HBUF_SZ 2048            /* History buffer */
 
-typedef unsigned int DWORD;
-typedef unsigned char BYTE;
-typedef unsigned short WORD;
+typedef uint8_t BYTE;
+typedef uint16_t WORD;
+typedef uint32_t DWORD;
 
 /*
  * When you have time, remove the packing and just populate each member
@@ -39,7 +43,7 @@ typedef struct {
 typedef struct {
     BYTE tag[4];                /* should be 'VTBL' */
     DWORD nseg;                 /* # of logical segments */
-    char desc[44];
+    BYTE desc[44];
     DWORD date;                 /* date and time created */
     BYTE flag;                  /* bitmap */
     BYTE seq;                   /* multi cartridge sequence # */
@@ -92,3 +96,5 @@ char *OStype[] = {
     "DOS Extended",
     "Windows 95"
 };
+
+#endif
