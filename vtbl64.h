@@ -7,6 +7,7 @@
 #define RAW_SEG 0x8000          /* Mask for detecting raw segment */
 
 #define SEG_SZ 29696L           /* Segment size */
+#define SEG_HD_SZ 3             /* Segment Header size in bytes */
 #define MAX_SEG_SZ 63488L       /* Maximal compressed size (QIC-113 Rev.G) */
 #define HBUF_SZ 2048            /* History buffer */
 
@@ -20,13 +21,13 @@ typedef uint32_t DWORD;
  */
 #pragma pack(push, 1)
 typedef struct {
-    DWORD sig;                  /* signature value should be 0xAA55AA55 defended in qicdcomp.h as IOHEAD_SIG */
+    DWORD sig;                  /* 0xAA55AA55 for valid files */
     WORD unkwn[3];              /* 3 unknown words often {0xFF,0x2,0} */
     DWORD blkcnt;               /* appears to be a block count, not the same value in 1st & 2nd header, larger in 2nd */
     DWORD t1;                   /* a qic 113 date time value */
     DWORD t2;                   /* a qic 113 date time value    */
     WORD unkwn2[4];             /* unknown data could be 2 DWORDS just as easily   */
-    char desc[44];              /* comment region, job # and disk in 1st header, empty in 2nd? */
+    BYTE desc[44];              /* comment region, job # and disk in 1st header, empty in 2nd? */
     DWORD t3;                   /* a qic 113 date time value, often a few seconds later, time of last write? */
     BYTE unkwn3[60];            /* unknown, always zeros? */
     DWORD t4;                   /* a qic 113 date time value */

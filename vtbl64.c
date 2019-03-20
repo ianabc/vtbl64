@@ -5,7 +5,7 @@
 #include "vtbl64.h"
 
 
-fhead113 *get_fheader(FILE * fp)
+fhead113 *getFHeader(FILE * fp)
 {
     fhead113 *hdr = NULL;
     unsigned int rd;
@@ -29,7 +29,7 @@ fhead113 *get_fheader(FILE * fp)
 }
 
 
-vtbl113 *get_vtbl(FILE * fp)
+vtbl113 *getVTBL(FILE * fp)
 {
     vtbl113 *vtbl = NULL;
     unsigned int sz, rd;
@@ -55,7 +55,7 @@ vtbl113 *get_vtbl(FILE * fp)
 }
 
 
-void disp_vtbl(vtbl113 * vtbl)
+void displayVTBL(vtbl113 * vtbl)
 {
     unsigned int i, rd;
     char date[64];
@@ -102,7 +102,7 @@ void disp_vtbl(vtbl113 * vtbl)
 }
 
 
-cseg_head *get_seghead(FILE * fp)
+cseg_head* getSegmentHeader(FILE * fp)
 {
     unsigned int sz, rd;
     cseg_head *seg_head;
@@ -122,7 +122,7 @@ cseg_head *get_seghead(FILE * fp)
 }
 
 
-void get_segdata(FILE * infp, BYTE * cbuf, unsigned int sn,
+void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn,
                  unsigned int seg_sz)
 {
     /*
@@ -146,19 +146,7 @@ void get_segdata(FILE * infp, BYTE * cbuf, unsigned int sn,
 }
 
 
-int flush_hbuf(FILE *fout, unsigned char *hbuf, int hptr)
-{
-    int wr;
-    if ((wr = fwrite(hbuf, 1, hptr, fout)) != hptr) {
-        fprintf(stderr, "Error writting output file\n");
-        exit(2);
-    }
-    hptr = 0;
-    return wr;
-}
-
-
-int getbit(BYTE *cbuf, unsigned int *bit_pos)
+int getBit(BYTE *cbuf, unsigned int *bit_pos)
 {
     /*
      * Get the value of the single bit at position bit_pos. This treats the
@@ -175,15 +163,15 @@ int getbit(BYTE *cbuf, unsigned int *bit_pos)
 }
 
 
-BYTE getbyte(BYTE *cbuf, unsigned int *bit_pos)
+BYTE getByte(BYTE *cbuf, unsigned int *bit_pos)
 {
     int i, ret;
     
     for(i = 0, ret=0; i < 8; i++) {
        /*
-        * fprintf(stderr, "%d", getbit(cbuf, bit_pos));
+        * fprintf(stderr, "%d", getBit(cbuf, bit_pos));
         */
-       ret = (ret << 1) + getbit(cbuf, bit_pos);
+       ret = (ret << 1) + getBit(cbuf, bit_pos);
     }
     fprintf(stderr, "0x%x ", ret);
 
@@ -191,7 +179,7 @@ BYTE getbyte(BYTE *cbuf, unsigned int *bit_pos)
 }
 
 
-unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
+unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
 {
     /*
      * Decompress binary data according to QIC-122
@@ -206,7 +194,7 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
      * Scan bits for 0x180
      */
     unsigned int bit_pos;
-    unsigned int off, offset_bits, len, nibble;
+    unsigned int off, off_bits, len, nibble;
     unsigned int i, j;
     
     BYTE hbuf[HBUF_SZ];
@@ -217,24 +205,24 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
      */
     bit_pos = 80;
 
-    while(bit_pos < (seg_sz - 3) * 8) {
-        if (getbit(cbuf, &bit_pos) == 0) {
-            hbuf[hptr] = getbyte(cbuf, &bit_pos);
+    while(bit_pos < (seg_sz - SEG_HD_SZ) * 8) {
+        if (getBit(cbuf, &bit_pos) == 0) {
+            hbuf[hptr] = getByte(cbuf, &bit_pos);
             hptr++;
         }
         else {
             /* A String */
-            if (getbit(cbuf, &bit_pos) == 0) {
-               offset_bits = 11;
+            if (getBit(cbuf, &bit_pos) == 0) {
+               off_bits = 11;
             }
             else
-               offset_bits = 7;
+               off_bits = 7;
 
 
-            for(i = 0, off = 0; i < offset_bits; i++) 
-               off = (off << 1) + getbit(cbuf, &bit_pos);
+            for(i = 0, off = 0; i < off_bits; i++) 
+               off = (off << 1) + getBit(cbuf, &bit_pos);
 
-            if ((offset_bits == 7) && (off == 0)) {
+            if ((off_bits == 7) && (off == 0)) {
                 /* End of compression marker is 110000000 
                  * i.e. A string with a 7 bit offset of zero
                  */
@@ -262,7 +250,7 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
             for (j = 0; j < 2; j++) {
                 nibble = 0;
                 for (i = 0; i < 2; i++) {
-                    nibble = (nibble << 1) + getbit(cbuf, &bit_pos);
+                    nibble = (nibble << 1) + getBit(cbuf, &bit_pos);
                 }
                 if (nibble < 3) {
                     len += nibble;
@@ -275,7 +263,7 @@ unsigned int decomp_seg(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 while (1) {
                     nibble = 0;
                     for (i = 0; i < 4; i++) {
-                        nibble = (nibble << 1) + getbit(cbuf, &bit_pos);
+                        nibble = (nibble << 1) + getBit(cbuf, &bit_pos);
                     }
                     if (nibble < 15) {
                         len += nibble;
@@ -316,7 +304,7 @@ int main(void)
         exit(1);
     }
 
-    fhead1 = get_fheader(infp);
+    fhead1 = getFHeader(infp);
 
     fseek(infp, SEG_SZ, SEEK_SET);
     if (ftell(infp) != SEG_SZ) {
@@ -324,15 +312,15 @@ int main(void)
                 ftell(infp), SEG_SZ);
         exit(1);
     }
-    fhead2 = get_fheader(infp);
+    fhead2 = getFHeader(infp);
 
 
 
     fseek(infp, 2 * SEG_SZ, SEEK_SET);
     if (ftell(infp) != 2 * SEG_SZ) { fprintf(stderr, "Unable to seek to vtbl\n");
     }
-    vtbl = get_vtbl(infp);
-    disp_vtbl(vtbl);
+    vtbl = getVTBL(infp);
+    displayVTBL(vtbl);
 
     /*
      * Iterate through segments
@@ -350,7 +338,7 @@ int main(void)
          */
         if ((cbuf = (BYTE *) malloc(SEG_SZ)) == NULL) {
             fprintf(stderr,
-                    "Failed to allocate space for compress buffer\n");
+                    "Failed to allocate space for compressed buffer\n");
             exit(1);
         }
         if ((dbuf = (BYTE *) malloc(MAX_SEG_SZ)) == NULL) {
@@ -364,7 +352,7 @@ int main(void)
             if (ftell(infp) != (3 + sn) * SEG_SZ) {
                 fprintf(stderr, "Unable to seek to compressed segment\n");
             }
-            seg_head = get_seghead(infp);
+            seg_head = getSegmentHeader(infp);
             fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n",
                     sn, seg_head->cum_sz, seg_head->cum_sz_hi,
                     seg_head->seg_sz);
@@ -375,8 +363,8 @@ int main(void)
                 break;
             }
 
-            get_segdata(infp, cbuf, sn, seg_head->seg_sz);
-            comp_rd = decomp_seg(cbuf, dbuf, seg_head->seg_sz);
+            getSegmentData(infp, cbuf, sn, seg_head->seg_sz);
+            comp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
             /*
              * The total size decompressed should match the header of in the
              * next compressed segment (eventually we need to care about
