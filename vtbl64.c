@@ -168,9 +168,6 @@ BYTE getByte(BYTE *cbuf, unsigned int *bit_pos)
     int i, ret;
     
     for(i = 0, ret=0; i < 8; i++) {
-       /*
-        * fprintf(stderr, "%d", getBit(cbuf, bit_pos));
-        */
        ret = (ret << 1) + getBit(cbuf, bit_pos);
     }
     fprintf(stderr, "0x%x ", ret);
@@ -198,7 +195,7 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     unsigned int i, j;
     
     BYTE hbuf[HBUF_SZ];
-    unsigned int hptr = 0;
+    BYTE *hptr = hbuf;
 
     /*
      * Skip over header to 10th byte
@@ -207,8 +204,7 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
 
     while(bit_pos < (seg_sz - SEG_HD_SZ) * 8) {
         if (getBit(cbuf, &bit_pos) == 0) {
-            hbuf[hptr] = getByte(cbuf, &bit_pos);
-            hptr++;
+            hbuf[(++hptr - hbuf) % HBUF_SZ] = getByte(cbuf, &bit_pos);
         }
         else {
             /* A String */
@@ -274,11 +270,25 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                     j++;
                 }
             }
-            fprintf(stderr, "\nString: len = %d offset %d\n", len, off);
             /*
-             * Check where offset would put us in the history buffer and wrap
-             * around if necessary
+             * Grab byte at offset and copy string to history buffer and dbuf
+             * Offset may wrap beyond start or end as may the string to be
+             * repeated.
              */
+            if (off > (hptr - hbuf)) {
+                fprintf(stderr, "offset %d beyond start of buffer from current pos %ld\n", 
+                        off, hptr - hbuf);
+            }
+            if (hptr - hbuf + off >= HBUF_SZ) {
+                fprintf(stderr, "Offset %d beyond end of buffer from current pos %ld\n",
+                        off, hptr - hbuf);
+            }
+            fprintf(stderr, "\nString: len = %d offset %d\n. Sending %ld to %ld\n", 
+                    len, off, hptr - hbuf, hptr - hbuf - off);
+            while(len--) {
+                hbuf[(hptr - hbuf) % HBUF_SZ] = hbuf[(hptr - hbuf - off) % HBUF_SZ];
+                hptr++;
+            }
         }
     }
     return 0;
