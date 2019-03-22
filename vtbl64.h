@@ -8,7 +8,7 @@
 
 #define SEG_SZ 29696L           /* Segment size */
 #define SEG_HD_SZ 3             /* Segment Header size in bytes */
-#define MAX_SEG_SZ 63488L       /* Maximal compressed size (QIC-113 Rev.G) */
+#define MAX_SEG_SZ 1048576L       /* Maximal compressed size (QIC-113 Rev.G) */
 #define HBUF_SZ 2048            /* History buffer */
 
 typedef uint8_t BYTE;

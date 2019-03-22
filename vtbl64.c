@@ -193,21 +193,25 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     unsigned int bit_pos;
     unsigned int off, off_bits, len, nibble;
     unsigned int i, j;
+    int inraw = 0;
     
-    BYTE hbuf[HBUF_SZ];
-    BYTE *hptr = hbuf;
-
+    unsigned int didx = 0;
     /*
      * Skip over header to 10th byte
      */
     bit_pos = 80;
 
+
     while(bit_pos < (seg_sz - SEG_HD_SZ) * 8) {
         if (getBit(cbuf, &bit_pos) == 0) {
-            hbuf[(++hptr - hbuf) % HBUF_SZ] = getByte(cbuf, &bit_pos);
+            /* Raw Byte */
+            if ( !inraw ) 
+                fprintf(stderr, "\nRaw ") && (inraw = 1);
+            dbuf[didx++] = getByte(cbuf, &bit_pos);
         }
         else {
             /* A String */
+            inraw = 0;
             if (getBit(cbuf, &bit_pos) == 0) {
                off_bits = 11;
             }
@@ -275,20 +279,14 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
              * Offset may wrap beyond start or end as may the string to be
              * repeated.
              */
-            if (off > (hptr - hbuf)) {
-                fprintf(stderr, "offset %d beyond start of buffer from current pos %ld\n", 
-                        off, hptr - hbuf);
-            }
-            if (hptr - hbuf + off >= HBUF_SZ) {
-                fprintf(stderr, "Offset %d beyond end of buffer from current pos %ld\n",
-                        off, hptr - hbuf);
-            }
-            fprintf(stderr, "\nString: len = %d offset %d\n. Sending %ld to %ld\n", 
-                    len, off, hptr - hbuf, hptr - hbuf - off);
-            while(len--) {
-                hbuf[(hptr - hbuf) % HBUF_SZ] = hbuf[(hptr - hbuf - off) % HBUF_SZ];
-                hptr++;
-            }
+            fprintf(stderr, "\nString: len = %u offset %u, sending %u to %d", 
+                    len, off, didx, didx - off);
+
+            /*
+             * See QIC-122 Rev. B for this function
+             */
+            for (i = 0; i < len; i++, didx++)
+                dbuf[didx] = dbuf[(didx - off) & (HBUF_SZ - 1)];
         }
     }
     return 0;
