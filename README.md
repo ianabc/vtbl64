@@ -53,36 +53,37 @@ the offset is encoded in either 7 or 11 bits. For the pathalogical example given
 above, the worst case scenario is offset of 1 and maximal length. The lengths
 are encoded as
 
-Length         Bit Pattern
-2              00
-3              01
-4              10
-5              11 00
-6              11 01
-7              11 10
-8              11 11 0000
-9              11 11 0001
-10             11 11 0010
-11             11 11 0011
-12             11 11 0100
-13             11 11 0101
-14             11 11 0110
-15             11 11 0111
-16             11 11 1000
-17             11 11 1001
-18             11 11 1010
-19             11 11 1011
-20             11 11 1100
-21             11 11 1101
-22             11 11 1110
-23             11 11 1111 0000
-24             11 11 1111 0001
-25             11 11 1111 0010
-...
-37             11 11 1111 1110
-38             11 11 1111 1111 0000
-39             11 11 1111 1111 0001
-...
+| Length |        Bit Pattern |
+|--------|--------------------|
+| 2      |  00 |
+| 3      |  01 |
+| 4      |  10 |
+| 5      |  11 00 |
+| 6      |  11 01 |
+| 7      |  11 10 |
+| 8      |  11 11 0000 |
+| 9      |  11 11 0001 |
+| 10     |  11 11 0010 |
+| 11     |  11 11 0011 |
+| 12     |  11 11 0100 |
+| 13     |  11 11 0101 |
+| 14     |  11 11 0110 |
+| 15     |  11 11 0111 |
+| 16     |  11 11 1000 |
+| 17     |  11 11 1001 |
+| 18     |  11 11 1010 |
+| 19     |  11 11 1011 |
+| 20     |  11 11 1100 |
+| 21     |  11 11 1101 |
+| 22     |  11 11 1110 |
+| 23     |  11 11 1111 0000 |
+| 24     |  11 11 1111 0001 |
+| 25     |  11 11 1111 0010 |
+| ...    |  ... |
+| 37     |  11 11 1111 1110 |
+| 38     |  11 11 1111 1111 0000 |
+| 39     |  11 11 1111 1111 0001 |
+| ...    |  ... |
 
 Ignoring the first 6 lengths above as a special case, the right most 4 digits
 are just the numbers $`1, 2, ..., 15`$ (or equivalently $`0x1, 0x2, ..., 0xe`$). So
@@ -106,7 +107,7 @@ compressed strings as possible which is bounded above by
 ```
 
 If each compressed string expands to $`2047`$ bytes, this means that the
-uncompressed buffer is bounded above by $`470 * 2047 = 962090 < 2^10`$. i.e.
-Everything will fit in a $`1MB`$ buffer.
+uncompressed buffer is bounded above by $`470 * 2047 = 962090 < 2^{10}`$. i.e.
+Everything will fit in a 1MB buffer.
 
 ### Catalog
