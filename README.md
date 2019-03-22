@@ -85,28 +85,28 @@ Length         Bit Pattern
 ...
 
 Ignoring the first 6 lengths above as a special case, the right most 4 digits
-are just the numbers $1, 2, ..., 15$ (or equivalently 0x1, 0x2, ..., 0xe). So
-labeling these four digits as $l$, and the number of '1111' blocks as $i$, the
+are just the numbers $`1, 2, ..., 15`$ (or equivalently $`0x1, 0x2, ..., 0xe`$). So
+labeling these four digits as $`l`$, and the number of $`1111`$ blocks as $`i`$, the
 length is
 
 ```math
 L = 15\times (i - 1) + 8 + l
 ```
 
-The maximum value of L with a 2K history buffer is 2047, which corresponds to
-$`i = 136, l=14`$, which is a total of $136\times 4 + 4 = 548$ bits. Adding the 1
-bit string marker, the 1 bit offset length indicator and a 7 bit offset gives us
-a compressed string length of 557 bits. Each of these strings represents 2047
-uncompressed bytes. For our pathological case we are assuming that the
-compressed buffer contains as many of these compressed strings as possible which
-is bounded above by
+The maximum value of $`L`$ with a $`2k`$ history buffer is $`2047`$, which
+corresponds to $`i = 136, l=14`$, which is a total of $`136\times 4 + 4 = 548`$
+bits. Adding the $`1`$ bit string marker, the $`1`$ bit offset length indicator
+and a $`7`$ bit offset gives us a compressed string length of $`557`$ bits. Each
+of these strings represents $`2047`$ uncompressed bytes. For our pathological
+case we are assuming that the compressed buffer contains as many of these
+compressed strings as possible which is bounded above by
 
 ```math
-\left \lceil{ \frac{ 32 * 1024 * 8 }{557} }\rceil \right = 470 
+ \lfloor{ \frac{ 32 * 1024 * 8 }{557} }\rfloor = 470 
 ```
 
-If each compressed string expands to 2047 bytes, this means that the
-uncompressed buffer is bounded above by $470 * 2047 = 962090 < 2**10$. i.e.
-Everything will fit in a 1MB buffer.
+If each compressed string expands to $`2047`$ bytes, this means that the
+uncompressed buffer is bounded above by $`470 * 2047 = 962090 < 2^10`$. i.e.
+Everything will fit in a $`1MB`$ buffer.
 
 ### Catalog
