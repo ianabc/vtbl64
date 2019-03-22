@@ -137,6 +137,7 @@ void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn,
                 ftell(infp), (sn + 3) * SEG_SZ);
         exit(1);
     }
+
     if ((rd = fread(cbuf, SEG_SZ, 1, infp)) != 1) {
         fprintf(stderr,
                 "Only read 0x%x bytes of 0x%lx compressed segment\n", rd,
@@ -202,7 +203,7 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     bit_pos = 80;
 
 
-    while(bit_pos < (seg_sz - SEG_HD_SZ) * 8) {
+    while(1) {
         if (getBit(cbuf, &bit_pos) == 0) {
             /* Raw Byte */
             if ( !inraw ) 
@@ -226,7 +227,8 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 /* End of compression marker is 110000000 
                  * i.e. A string with a 7 bit offset of zero
                  */
-                fprintf(stderr, "End of compression marker found at 0x%08x\n", bit_pos);
+                fprintf(stderr, "\nEnd of compression marker found at %d\n", didx);
+                break;
             }
 
             /* Examine the length of the match
@@ -289,7 +291,16 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 dbuf[didx] = dbuf[(didx - off) & (HBUF_SZ - 1)];
         }
     }
-    return 0;
+    return didx;
+}
+
+void writeSegment(FILE *outfp, BYTE *dbuf, unsigned int seg_sz) {
+
+    unsigned int wr = 0;
+    if ((wr = fwrite(dbuf, 1, seg_sz, outfp)) != seg_sz) {
+        fprintf(stderr, "Only wrote 0x%x bytes of 0x%x byte buffer\n", wr, seg_sz);
+        exit(1);
+    }
 }
 
 
@@ -373,12 +384,14 @@ int main(void)
 
             getSegmentData(infp, cbuf, sn, seg_head->seg_sz);
             comp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
+            
             /*
              * The total size decompressed should match the header of in the
              * next compressed segment (eventually we need to care about
              * overflows here for 4GB+ archives
              */
             decomp_sz += comp_rd;
+            writeSegment(outfp, dbuf, comp_rd);
 
             lseg_sz += comp_rd;
 
