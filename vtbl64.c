@@ -1,9 +1,12 @@
 #include <stdio.h>
+#include <getopt.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <ctype.h>
 #include <time.h>
 #include "vtbl64.h"
 
+static int debug = 0;
 
 fhead113 *getFHeader(FILE * fp)
 {
@@ -171,9 +174,9 @@ BYTE getByte(BYTE *cbuf, unsigned int *bit_pos)
     for(i = 0, ret=0; i < 8; i++) {
        ret = (ret << 1) + getBit(cbuf, bit_pos);
     }
-    if(ret > ' ')
+    if((debug > 2) && (ret > ' '))
         fprintf(stderr, "%c ", ret);
-    fprintf(stderr, "0x%x ", ret);
+    if(debug > 2) fprintf(stderr, "0x%x ", ret);
 
     return ret;
 }
@@ -208,9 +211,9 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     while(1) {
         if (getBit(cbuf, &bit_pos) == 0) {
             /* Raw Byte */
-            if ( !inraw ) 
+            if ( (debug > 2) && (!inraw) ) 
                 fprintf(stderr, "\nRaw ") && (inraw = 1);
-            fprintf(stderr, "[%d]", didx);
+            if(debug > 2) fprintf(stderr, "[%d]", didx);
             dbuf[didx++] = getByte(cbuf, &bit_pos);
         }
         else {
@@ -230,7 +233,7 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 /* End of compression marker is 110000000 
                  * i.e. A string with a 7 bit offset of zero
                  */
-                fprintf(stderr, "\nEnd of compression marker found at %d\n", didx);
+                if(debug > 2) fprintf(stderr, "\nEnd of compression marker found at %d\n", didx);
                 break;
             }
 
@@ -280,20 +283,12 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 }
             }
 
-            fprintf(stderr, "\nString: len = %u offset %u, sending %u to %d", 
+            if(debug > 2) fprintf(stderr, "\nString: len = %u offset %u, sending %u to %d", 
                     len, off, didx, didx - off);
 
-            /*
-             * See QIC-122 Rev. B for this function
-             *
-             * Is didx off by one here?
-             */
             for (i = 0; i < len; i++, didx++) {
-                /*
-                dbuf[didx] = dbuf[(didx - off) & (HBUF_SZ - 1)];
-                */
                 dbuf[didx] = dbuf[(didx - off)];
-                fprintf(stderr, " 0x%x", dbuf[didx]);
+                if(debug > 2) fprintf(stderr, " 0x%x", dbuf[didx]);
             }
         }
     }
@@ -304,13 +299,15 @@ void writeSegment(FILE *outfp, BYTE *dbuf, unsigned int seg_sz) {
 
     unsigned int wr = 0;
     if ((wr = fwrite(dbuf, 1, seg_sz, outfp)) != seg_sz) {
-        fprintf(stderr, "Only wrote 0x%x bytes of 0x%x byte buffer\n", wr, seg_sz);
+        if (debug > 2) fprintf(stderr, "Only wrote 0x%x bytes of 0x%x byte buffer\n", wr, seg_sz);
         exit(1);
     }
 }
 
 
-int main(void)
+
+
+int main(int argc, char **argv)
 {
 
     FILE *infp, *outfp;
@@ -323,6 +320,17 @@ int main(void)
     unsigned int sn = 0;
     unsigned int lseg_sz, comp_rd;
     unsigned int decomp_sz = 0;
+    int c;
+
+    while((c = getopt(argc, argv, "d")) != -1) {
+        switch(c) {
+            case 'd':
+                debug++;
+                break;
+            default:
+                exit(1);
+        }
+    }
 
     if (!(infp = fopen("../Image.113", "rb"))) {
         fprintf(stderr, "Can't open input file '../Image.113'\n");
