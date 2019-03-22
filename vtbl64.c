@@ -171,6 +171,8 @@ BYTE getByte(BYTE *cbuf, unsigned int *bit_pos)
     for(i = 0, ret=0; i < 8; i++) {
        ret = (ret << 1) + getBit(cbuf, bit_pos);
     }
+    if(ret > ' ')
+        fprintf(stderr, "%c ", ret);
     fprintf(stderr, "0x%x ", ret);
 
     return ret;
@@ -208,6 +210,7 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
             /* Raw Byte */
             if ( !inraw ) 
                 fprintf(stderr, "\nRaw ") && (inraw = 1);
+            fprintf(stderr, "[%d]", didx);
             dbuf[didx++] = getByte(cbuf, &bit_pos);
         }
         else {
@@ -276,19 +279,22 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                     j++;
                 }
             }
-            /*
-             * Grab byte at offset and copy string to history buffer and dbuf
-             * Offset may wrap beyond start or end as may the string to be
-             * repeated.
-             */
+
             fprintf(stderr, "\nString: len = %u offset %u, sending %u to %d", 
                     len, off, didx, didx - off);
 
             /*
              * See QIC-122 Rev. B for this function
+             *
+             * Is didx off by one here?
              */
-            for (i = 0; i < len; i++, didx++)
+            for (i = 0; i < len; i++, didx++) {
+                /*
                 dbuf[didx] = dbuf[(didx - off) & (HBUF_SZ - 1)];
+                */
+                dbuf[didx] = dbuf[(didx - off)];
+                fprintf(stderr, " 0x%x", dbuf[didx]);
+            }
         }
     }
     return didx;
