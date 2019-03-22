@@ -43,5 +43,66 @@ an 0x7400 block). It corresponds to
 ### Compressed Data Segments
 
 ### Uncompressed Data Segments
+From the QIC documentation I *think* we can safely assume a 1MB maximum buffer
+size here. This simplifies handling for the history buffer etc. Here is my
+argument.
+
+The best/worst case scenario for the compression ratio is a very long string of
+identical bytes. e.g. 'AAAAAAA....'. The history buffer is 2048 bytes long and
+the offset is encoded in either 7 or 11 bits. For the pathalogical example given
+above, the worst case scenario is offset of 1 and maximal length. The lengths
+are encoded as
+
+Length         Bit Pattern
+2              00
+3              01
+4              10
+5              11 00
+6              11 01
+7              11 10
+8              11 11 0000
+9              11 11 0001
+10             11 11 0010
+11             11 11 0011
+12             11 11 0100
+13             11 11 0101
+14             11 11 0110
+15             11 11 0111
+16             11 11 1000
+17             11 11 1001
+18             11 11 1010
+19             11 11 1011
+20             11 11 1100
+21             11 11 1101
+22             11 11 1110
+23             11 11 1111 0000
+24             11 11 1111 0001
+25             11 11 1111 0010
+...
+37             11 11 1111 1110
+38             11 11 1111 1111 0000
+39             11 11 1111 1111 0001
+...
+
+Ignoring the first 6 lengths above as a special case, the right most 4 digits
+are just the numbers $1, 2, ..., 15$ (or equivalently 0x1, 0x2, ..., 0xe). So
+labeling these four digits as $l$, and the number of '1111' blocks as $i$, the
+length is
+
+$$ L = 15(i - 1) + 8 + l$
+
+The maximum value of L with a 2K history buffer is 2047, which corresponds to
+$i = 136, l=14$, which is a total of $136\times 4 + 4 = 548$ bits. Adding the 1
+bit string marker, the 1 bit offset length indicator and a 7 bit offset gives us
+a compressed string length of 557 bits. Each of these strings represents 2047
+uncompressed bytes. For our pathological case we are assuming that the
+compressed buffer contains as many of these compressed strings as possible which
+is bounded above by
+
+$$ \left \lceil{ \frac{ 32 * 1024 * 8 }{557} }\rceil \right = 470 $$
+
+If each compressed string expands to 2047 bytes, this means that the
+uncompressed buffer is bounded above by $470 * 2047 = 962090 < 2**10$. i.e.
+Everything will fit in a 1MB buffer.
 
 ### Catalog
