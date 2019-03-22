@@ -358,11 +358,14 @@ FOFFSET get_dir_len(int fp, int comp, FOFFSET soff)
    and 0 for no debug messages
 */
 
-void decomp_seg()               // was being sloppy, no return!
+void decomp_seg(WORD seg_sz)               // was being sloppy, no return!
 {
     extern BYTE dcomp_verb;     // flag for verbosity at top of file
     int off, len, i, rawndx = -1, limit = 29696;        // was 5000 prior to 10/14/03
+    FOFFSET fstart;
     FOFFSET foff;
+
+    fstart = lseek(fin, 0L, SEEK_CUR);
 
     hptr = 0;
     bits = 0;
@@ -394,19 +397,18 @@ void decomp_seg()               // was being sloppy, no return!
                 rawndx = -1;    // end raw data block (1 or more chars)
             }
             off = getsoff();
-            if (off == 0) {
-                foff = (FOFFSET) lseek(fin, 0L, SEEK_CUR);
+            foff = (FOFFSET) lseek(fin, 0L, SEEK_CUR);
+            if ((off == 0) && (foff - fstart == seg_sz)) {
                 if (dcomp_verb) {
-                    printf
-                        ("\nfound compression terminator in byte stream at 0x");
-                    prt_foff(&foff);
+                        printf("\nfound compression terminator in byte stream at 0x");
+                        prt_foff(&foff);
                 }
                 break;          // this is the terminator
             }
 
             len = getslen();
             if (dcomp_verb == 2)
-                printf("\nstring: len = %d offset = %d", len, off);
+                printf("\nstring: len = %d offset = %d, hptr = %d", len, off, hptr);
 //        note the unmodified offset is always displayed
 #ifdef CARRAY
 // the base 0 or 1 for array off handled below
@@ -433,6 +435,7 @@ void decomp_seg()               // was being sloppy, no return!
                 if (hptr == HBUF_SZ)
                     flush_hbuf();
                 hbuf[hptr++] = hbuf[i++];       // copy in string
+                fprintf(stdout, " 0x%x", hbuf[hptr - 1]);
                 i = i % HBUF_SZ;
             }
         }

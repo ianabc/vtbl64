@@ -775,7 +775,7 @@ int main(int argc, char *argv[])
                                 }
 
                             } else {
-                                decomp_seg();   // no error checking....
+                                decomp_seg(seg_sz);   // no error checking....
                                 tot_wr += comp_wr;
                                 lseg_sz += comp_rd;
                                 if (incat)

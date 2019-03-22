@@ -195,5 +195,5 @@ typedef long FOFFSET;           // 2 GB is default std C
 
 #define VTBL_DATE_FUDGE   63072000L     // date fudge for vtbl date  as of 3/4/18 see vtbl.c qictime() for solution
 extern int copy_region(long);
- extern void decomp_seg();
+ extern void decomp_seg(WORD seg_sz);
 
