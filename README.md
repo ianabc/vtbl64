@@ -86,7 +86,8 @@ are encoded as
 | ...    |  ... |
 
 Ignoring the first 6 lengths above as a special case, the right most 4 digits
-are just the numbers $`1, 2, ..., 15`$ (or equivalently $`0x1, 0x2, ..., 0xe`$). So
+are just the numbers $`1, 2, ..., 15`$ (or equivalently $`\mathtt{0x1, 0x2, ...,
+0xe}`$). So
 labeling these four digits as $`l`$, and the number of $`1111`$ blocks as $`i`$, the
 length is
 
