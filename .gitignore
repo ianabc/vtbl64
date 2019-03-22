@@ -3,8 +3,10 @@ slib
 rd113
 vtbl
 vtbl64
+*.out
 *.o
 *~
+*.swp
 dcomp.out
 cat.out
 tags
