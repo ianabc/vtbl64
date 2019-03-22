@@ -89,7 +89,9 @@ are just the numbers $1, 2, ..., 15$ (or equivalently 0x1, 0x2, ..., 0xe). So
 labeling these four digits as $l$, and the number of '1111' blocks as $i$, the
 length is
 
-$$ L = 15(i - 1) + 8 + l$
+```math
+L = 15\times (i - 1) + 8 + l
+```
 
 The maximum value of L with a 2K history buffer is 2047, which corresponds to
 $`i = 136, l=14`$, which is a total of $136\times 4 + 4 = 548$ bits. Adding the 1
