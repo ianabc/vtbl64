@@ -102,7 +102,7 @@ case we are assuming that the compressed buffer contains as many of these
 compressed strings as possible which is bounded above by
 
 ```math
- \lfloor{ \frac{ 32 * 1024 * 8 }{557} }\rfloor = 470 
+ \left\lfloor{ \frac{ 32 * 1024 * 8 }{557} }\right\rfloor = 470 
 ```
 
 If each compressed string expands to $`2047`$ bytes, this means that the
