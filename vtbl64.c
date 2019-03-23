@@ -295,15 +295,28 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     return didx;
 }
 
-void writeSegment(FILE *outfp, BYTE *dbuf, unsigned int seg_sz) {
+
+unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, unsigned int decomp_sz) {
 
     unsigned int wr = 0;
-    if ((wr = fwrite(dbuf, 1, seg_sz, outfp)) != seg_sz) {
-        if (debug > 2) fprintf(stderr, "Only wrote 0x%x bytes of 0x%x byte buffer\n", wr, seg_sz);
+    /*
+     * Header information for new decompressed data
+     */
+    wr += fwrite(&(seg_head->cum_sz),    sizeof(seg_head->cum_sz),    1, outfp);
+    wr += fwrite(&(seg_head->cum_sz_hi), sizeof(seg_head->cum_sz_hi), 1, outfp);
+    wr += fwrite(&(seg_head->seg_sz),    sizeof(seg_head->seg_sz),    1, outfp);
+
+    if (wr != 3)
+        fprintf(stderr, "Failed to write segment header.\n");
+    
+    if ((wr = fwrite(dbuf, seg_head->seg_sz, 1, outfp)) != 1) {
+        fprintf(stderr, "Only wrote 0x%x bytes of 0x%x byte buffer\n", wr, seg_head->seg_sz);
         exit(1);
     }
-}
 
+    return (wr + 3);
+    
+}
 
 
 
@@ -318,7 +331,7 @@ int main(int argc, char **argv)
     BYTE *cbuf;
     BYTE *dbuf;
     unsigned int sn = 0;
-    unsigned int lseg_sz, comp_rd;
+    unsigned int lseg_sz, decomp_rd;
     unsigned int decomp_sz = 0;
     int c;
 
@@ -397,17 +410,23 @@ int main(int argc, char **argv)
             }
 
             getSegmentData(infp, cbuf, sn, seg_head->seg_sz);
-            comp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
+            decomp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
             
             /*
              * The total size decompressed should match the header of in the
              * next compressed segment (eventually we need to care about
-             * overflows here for 4GB+ archives
+             * overflows here for 4GB+ archives.
+             *
+             * We will need to:
+             *   1. split dbuf into new 32k segments
+             *   2. Create a new segment header
+             *   3. Write Segment header and data
+             *
              */
-            decomp_sz += comp_rd;
-            writeSegment(outfp, dbuf, comp_rd);
+            decomp_sz += decomp_rd;
+            writeSegment(outfp, dbuf, seg_head, decomp_rd);
 
-            lseg_sz += comp_rd;
+            lseg_sz += decomp_rd;
 
 
             if (seg_head->seg_sz & RAW_SEG) {
