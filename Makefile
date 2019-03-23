@@ -16,31 +16,24 @@ LDFLAGS = -lrt -g
 prefix = /usr/local
 exec_prefix = $(prefix)
 
-PROGRAMS := rd113 iocfg slib vtbl vtbl64
+PROGRAMS := vtbl64
 
 all: $(PROGRAMS)
 
-PROG=rd113
-$(PROG): $(PROG).o
-	gcc -g -o $@ -g -lrt $^
-
-PROG = iocfg
-$(PROG): $(PROG).o
-	gcc -g -o $@ -g -lrt $^
-
-PROG = slib
-$(PROG): $(PROG).o
-	gcc -g -o $@ -g -lrt $^
-
-PROG = vtbl
-$(PROG): $(PROG).o qicdcomp.o
-	gcc  -g -o $@ $^
-
 PROG = vtbl64
-$(PROG): $(PROG).o
+$(PROG): main.o qic122.o qic113.o bitsbytes.o
 	gcc  -g -o $@ $^
 
-$(PROG).o: $(PROG).c $(PROG).h
+$main.o: main.c qic.h
+	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
+
+qic122.o: qic122.c qic.h
+	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
+
+qic113.o: qic113.c qic.h
+	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
+
+bitsbytes.o: bitsbytes.c qic.h
 	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
 
 .PHONY: clean

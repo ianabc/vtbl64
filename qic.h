@@ -1,5 +1,5 @@
-#ifndef _VTBL64_H
-#define _VTBL64_H 1
+#ifndef QIC_H
+#define QIC_H 1
 
 #include <stdint.h>
 
@@ -14,6 +14,8 @@
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t DWORD;
+
+extern int debug;
 
 /*
  * When you have time, remove the packing and just populate each member
@@ -78,24 +80,20 @@ typedef struct {
 #pragma pack(pop)
 
 
-char *flagbits[] = {
-    "Vendor specific volume",
-    "Volume spans multiple cartidges",
-    "File sets written without verification",
-    "Reserved (should not occur)",
-    "Compressed data segment spaning",
-    "File Set Directory follow data section"
-};
+int getBit(BYTE *cbuf, unsigned int *bit_pos);
 
-char *OStype[] = {
-    "Extended",
-    "DOS Basic",
-    "Unix",
-    "OS/2",
-    "Novell Netware",
-    "Windows NT",
-    "DOS Extended",
-    "Windows 95"
-};
+BYTE getByte(BYTE *cbuf, unsigned int *bit_pos);
 
+fhead113 *getFHeader(FILE *fp);
+
+vtbl113 *getVTBL(FILE *fp);
+
+void displayVTBL(vtbl113 *vtbl);
+
+cseg_head *getSegmentHeader(FILE * fp);
+
+void getSegmentData(FILE *infp, BYTE *cbuf, unsigned int sn, unsigned int seg_sz);
+
+unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, unsigned int decomp_sz);
+unsigned int decompressSegment(BYTE *cbuf, BYTE *dbuf, unsigned int seg_sz);
 #endif
