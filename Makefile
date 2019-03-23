@@ -4,7 +4,6 @@
 CC = gcc
 CFLAGS = -g -Wall -Dunix
 CFLAGSEXTRA = -ggdb -ansi -pedantic
-LDFLAGS = -lrt -g
 
 .SUFFIXES:
 .SUFFIXES: .c .o
@@ -22,7 +21,7 @@ all: $(PROGRAMS)
 
 PROG = vtbl64
 $(PROG): main.o qic122.o qic113.o bitsbytes.o
-	gcc  -g -o $@ $^
+	$(CC) -g -o $@ $^
 
 $main.o: main.c qic.h
 	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
