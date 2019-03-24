@@ -18,14 +18,21 @@ int main(int argc, char **argv)
     BYTE *cbuf;
     BYTE *dbuf;
     unsigned int sn = 0;
+    int startsn = -1, endsn = -1;
     unsigned long decomp_sz = 0;
     unsigned int decomp_rd, decomp_target;
     int c, pass, i;
 
-    while((c = getopt(argc, argv, "d")) != -1) {
+    while((c = getopt(argc, argv, "ds:t:")) != -1) {
         switch(c) {
             case 'd':
                 debug++;
+                break;
+            case 's':
+                startsn = atoi(optarg);
+                break;
+            case 't':
+                endsn = atoi(optarg);
                 break;
             default:
                 exit(1);
@@ -81,7 +88,10 @@ int main(int argc, char **argv)
          * Main decompression loop. Iterate over data segments, decompress and
          * write to file.
          */
-        while (sn < fhead2->blkcnt) {
+        if (startsn > 0) sn = startsn;
+        if (endsn < 0) endsn = fhead2->blkcnt;
+
+        while (sn < endsn) {
 
             /*
              * Collect the next two segment headers. Each segment header tells
