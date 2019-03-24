@@ -11,6 +11,8 @@
 #define MAX_SEG_SZ 1048576L       /* Maximal compressed size (QIC-113 Rev.G) */
 #define HBUF_SZ 2048            /* History buffer */
 
+#define DCOMP_MAX_ITERS 10       /* Maximums number of decompression iterations */
+
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t DWORD;
