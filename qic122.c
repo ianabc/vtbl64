@@ -52,7 +52,7 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 /* End of compression marker is 110000000 
                  * i.e. A string with a 7 bit offset of zero
                  */
-                if(debug > 2) fprintf(stderr, "\nEnd of compression marker found at %d\n", didx);
+                if(debug > 2) fprintf(stderr, "\nEnd of compression marker found at %d (0x%x)\n", didx, didx);
                 break;
             }
 

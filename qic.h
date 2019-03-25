@@ -11,7 +11,11 @@
 #define MAX_SEG_SZ 1048576L       /* Maximal compressed size (QIC-113 Rev.G) */
 #define HBUF_SZ 2048            /* History buffer */
 
-#define DCOMP_MAX_ITERS 10       /* Maximums number of decompression iterations */
+#define DCOMP_MAX_EXTENTS 100   /* Maximums number of compressed extents in a
+                                   segment. Not sure if there is a limit on
+                                   this, but if there are more than this many
+                                   segments, something is probably
+                                   wrong. */
 
 typedef uint8_t BYTE;
 typedef uint16_t WORD;

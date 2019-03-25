@@ -17,11 +17,12 @@ int main(int argc, char **argv)
     cseg_head *seg_head, *next_seg_head;
     BYTE *cbuf;
     BYTE *dbuf;
+    WORD lseg_sz, cum_seg_sz;
     unsigned int sn = 0;
     int startsn = -1, endsn = -1;
     unsigned long decomp_sz = 0;
-    unsigned int decomp_rd, decomp_target;
-    int c, pass, i;
+    unsigned int rd, decomp_rd, decomp_target;
+    int c, pass;
 
     while((c = getopt(argc, argv, "ds:t:")) != -1) {
         switch(c) {
@@ -127,25 +128,51 @@ int main(int argc, char **argv)
 
             getSegmentData(infp, cbuf, sn, seg_head->seg_sz);
 
-            pass = 0;
             decomp_rd = 0;
-            while (( decomp_rd < decomp_target ) && ( pass < DCOMP_MAX_ITERS )) {
+            /*
+             * Some segments have more than one compressed block. They are
+             * concatenated one after the other.
+             */
+            cum_seg_sz = seg_head->seg_sz;
 
-                if (debug > 1) fprintf(stderr, "Decompressing pass %d,", pass);
-                decomp_rd = decompressSegment(cbuf, dbuf, decomp_rd);
+            pass = 1;
+            decomp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
+             
+            if (decomp_rd < decomp_target) {
+                /* 
+                 * More compressed extents in this segment. The next two bytes
+                 * should be a seg_sz, then we should have more data. There may
+                 * be many of these additional extents.
+                 */
+                while (( decomp_rd < decomp_target ) && ( pass < DCOMP_MAX_EXTENTS )) {
+                    
+                    pass++;
 
-                /* Fake a 10 byte header */
-                for(i = 0; i < 10; i++)
-                    cbuf[i] = '\0';
-
-                for(i = 10; i < (MAX_SEG_SZ-10); i++) 
-                    cbuf[i] = dbuf[i-10];
-
-                pass++;
-                if (debug > 1) fprintf(stderr, " decomp_rd %d of target %d\n",
-                        decomp_rd, decomp_target);
-
-            } 
+                    /* Seek to new seg_sz marker and read */
+                    fseek(infp, (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz, SEEK_SET);
+                    if (ftell(infp) != (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz) {
+                        fprintf(stderr, "Unable to seek to next compressed seg_sz\n");
+                    }
+                    if ((rd = fread(&lseg_sz, 2, 1, infp)) != 1) {
+                        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte seg_sz\n", rd, 2);
+                        exit(1);
+                    }
+                    
+                    if (debug) fprintf(stderr, "Decompress pass %d at 0x%lx with new lseg_sz 0x%x at 0x%x \n",
+                            pass, (3 + sn) * SEG_SZ + sizeof(seg_head) + cum_seg_sz + sizeof(lseg_sz), 
+                            lseg_sz, cum_seg_sz);
+                    
+                    decomp_rd += decompressSegment(&cbuf[cum_seg_sz + sizeof(lseg_sz)], &dbuf[decomp_rd], lseg_sz);
+                    cum_seg_sz += lseg_sz + sizeof(lseg_sz);
+                }
+            }
+            if (decomp_rd != decomp_target) {
+                fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d extents\n",
+                        sn, decomp_rd, decomp_target, pass);
+            }
+            else 
+                if (debug) fprintf(stderr, "Segment %d: Decompressed %d of %d in %d extents\n",
+                        sn, decomp_rd, decomp_target, pass);
 
             decomp_sz += decomp_rd;
             writeSegment(outfp, dbuf, seg_head, decomp_rd);
