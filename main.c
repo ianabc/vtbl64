@@ -168,7 +168,8 @@ int main(int argc, char **argv)
             }
             if (decomp_rd != decomp_target) {
                 fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d extents\n",
-                        sn, decomp_rd, decomp_target, pass);
+                        sn, decomp_target, decomp_rd, pass);
+                exit(1);
             }
             else 
                 if (debug) fprintf(stderr, "Segment %d: Decompressed %d of %d in %d extents\n",
