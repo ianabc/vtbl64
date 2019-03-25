@@ -74,12 +74,12 @@ int main(int argc, char **argv)
             exit(1);
         }
         
-        if ((cbuf = (BYTE *) malloc(MAX_SEG_SZ)) == NULL) {
+        if ((cbuf = (BYTE *) calloc(MAX_SEG_SZ, 1)) == NULL) {
             fprintf(stderr,
                     "Failed to allocate space for compressed buffer\n");
             exit(1);
         }
-        if ((dbuf = (BYTE *) malloc(MAX_SEG_SZ)) == NULL) {
+        if ((dbuf = (BYTE *) calloc(MAX_SEG_SZ, 1)) == NULL) {
             fprintf(stderr,
                     "Failed to allocate space for uncompressed buffer\n");
             exit(1);
@@ -112,19 +112,20 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Unable to seek to next compressed segment\n");
             }
             next_seg_head = getSegmentHeader(infp);
-            decomp_target = ((next_seg_head->cum_sz_hi * UINT32_MAX + next_seg_head->cum_sz) - 
-                    (seg_head->cum_sz_hi * UINT32_MAX + seg_head->cum_sz));
+            if (sn != 0 && next_seg_head->cum_sz == 0
+                && next_seg_head->cum_sz_hi == 0) {
+                fprintf(stderr, "Catalog found in segment %u\n", sn);
+                decomp_target = UINT32_MAX;
+            }
+            else {
+                decomp_target = ((next_seg_head->cum_sz_hi * (UINT32_MAX + 1) + next_seg_head->cum_sz) - 
+                     (seg_head->cum_sz_hi * (UINT32_MAX + 1) + seg_head->cum_sz));
+            }
 
 
             fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n",
                     sn, seg_head->cum_sz, seg_head->cum_sz_hi,
                     seg_head->seg_sz);
-
-            if (sn != 0 && seg_head->cum_sz == 0
-                && seg_head->cum_sz_hi == 0) {
-                fprintf(stderr, "Catalog found in segment %u\n", sn);
-                break;
-            }
 
             getSegmentData(infp, cbuf, sn, seg_head->seg_sz);
 
@@ -137,36 +138,41 @@ int main(int argc, char **argv)
 
             pass = 1;
             decomp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
-             
-            if (decomp_rd < decomp_target) {
-                /* 
-                 * More compressed extents in this segment. The next two bytes
-                 * should be a seg_sz, then we should have more data. There may
-                 * be many of these additional extents.
-                 */
-                while (( decomp_rd < decomp_target ) && ( pass < DCOMP_MAX_EXTENTS )) {
-                    
-                    pass++;
+            
+            /*
+             * Handle any additonal compressed extents
+             */
+            while (( decomp_rd < decomp_target ) && ( pass < DCOMP_MAX_EXTENTS )) {
+                
+                pass++;
 
-                    /* Seek to new seg_sz marker and read */
-                    fseek(infp, (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz, SEEK_SET);
-                    if (ftell(infp) != (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz) {
-                        fprintf(stderr, "Unable to seek to next compressed seg_sz\n");
-                    }
-                    if ((rd = fread(&lseg_sz, 2, 1, infp)) != 1) {
-                        fprintf(stderr, "Only read 0x%x bytes of 0x%x byte seg_sz\n", rd, 2);
-                        exit(1);
-                    }
-                    
-                    if (debug) fprintf(stderr, "Decompress pass %d at 0x%lx with new lseg_sz 0x%x at 0x%x \n",
-                            pass, (3 + sn) * SEG_SZ + sizeof(seg_head) + cum_seg_sz + sizeof(lseg_sz), 
-                            lseg_sz, cum_seg_sz);
-                    
-                    decomp_rd += decompressSegment(&cbuf[cum_seg_sz + sizeof(lseg_sz)], &dbuf[decomp_rd], lseg_sz);
-                    cum_seg_sz += lseg_sz + sizeof(lseg_sz);
+                /* Seek to new seg_sz marker and read */
+                fseek(infp, (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz, SEEK_SET);
+                if (ftell(infp) != (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz) {
+                    fprintf(stderr, "Unable to seek to next compressed seg_sz\n");
                 }
+                if ((rd = fread(&lseg_sz, 2, 1, infp)) != 1) {
+                    fprintf(stderr, "Only read 0x%x bytes of 0x%x byte seg_sz\n", rd, 2);
+                    exit(1);
+                }
+                /* 
+                 * lseg_sz can be zero if this is the last compressed
+                 * segment, because we don't know next_seg_head->cum_sz. If
+                 * it is zero, we are done.
+                 */
+                if (lseg_sz == 0) {
+                    decomp_target = decomp_rd;
+                    break;
+                }
+
+                if (debug) fprintf(stderr, "Decompress pass %d at 0x%lx with new lseg_sz 0x%x at 0x%x \n",
+                        pass, (3 + sn) * SEG_SZ + sizeof(seg_head) + cum_seg_sz + sizeof(lseg_sz), 
+                        lseg_sz, cum_seg_sz);
+                
+                decomp_rd += decompressSegment(&cbuf[cum_seg_sz + sizeof(lseg_sz)], &dbuf[decomp_rd], lseg_sz);
+                cum_seg_sz += lseg_sz + sizeof(lseg_sz);
             }
-            if (decomp_rd != decomp_target) {
+            if ((lseg_sz != 0) && (decomp_rd != decomp_target)) {
                 fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d extents\n",
                         sn, decomp_target, decomp_rd, pass);
                 exit(1);
