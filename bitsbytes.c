@@ -26,8 +26,10 @@ BYTE getByte(BYTE *cbuf, unsigned int *bit_pos)
     for(i = 0, ret=0; i < 8; i++) {
        ret = (ret << 1) + getBit(cbuf, bit_pos);
     }
+
     if((debug > 2) && (ret > ' '))
         fprintf(stderr, "%c ", ret);
+
     if(debug > 2) fprintf(stderr, "0x%x ", ret);
 
     return ret;

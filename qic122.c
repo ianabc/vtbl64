@@ -32,7 +32,6 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
             /* Raw Byte */
             if ( (debug > 2) && (!inraw) ) 
                 fprintf(stderr, "\nRaw ") && (inraw = 1);
-            if(debug > 2) fprintf(stderr, "[%d]", didx);
             dbuf[didx++] = getByte(cbuf, &bit_pos);
         }
         else {

@@ -161,6 +161,7 @@ int main(int argc, char **argv)
                  * it is zero, we are done.
                  */
                 if (lseg_sz == 0) {
+                    fprintf(stderr, "lseg_sz set to zero. end decompress loop\n");
                     decomp_target = decomp_rd;
                     break;
                 }
