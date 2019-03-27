@@ -140,7 +140,7 @@ int main(int argc, char **argv)
             decomp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
             
             /*
-             * Handle any additonal compressed extents
+             * Handle any additonal compressed frames
              */
             while (( decomp_rd < decomp_target ) && ( cframe < DCOMP_MAX_EXTENTS )) {
                 
@@ -174,12 +174,12 @@ int main(int argc, char **argv)
                 cum_seg_sz += lseg_sz + sizeof(lseg_sz);
             }
             if ((lseg_sz != 0) && (decomp_rd != decomp_target)) {
-                fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d extents\n",
+                fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d frames\n",
                         sn, decomp_target, decomp_rd, cframe);
                 exit(1);
             }
             else 
-                if (debug) fprintf(stderr, "Segment %d: Decompressed %d of %d in %d extents\n",
+                if (debug) fprintf(stderr, "Segment %d: Decompressed %d of %d in %d frames\n",
                         sn, decomp_rd, decomp_target, cframe);
 
             decomp_sz += decomp_rd;
