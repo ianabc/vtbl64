@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     if (ftell(infp) != SEG_SZ) {
         fprintf(stderr, "Unable to seek to second header: %ld (%ld)\n",
                 ftell(infp), SEG_SZ);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     fhead2 = getFHeader(infp);
 
@@ -111,12 +111,12 @@ int main(int argc, char **argv)
         if ((cbuf = (BYTE *) calloc(SEG_SZ, 1)) == NULL) {
             fprintf(stderr,
                     "Failed to allocate space for compressed buffer\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         if ((dbuf = (BYTE *) calloc(MAX_SEG_SZ, 1)) == NULL) {
             fprintf(stderr,
                     "Failed to allocate space for uncompressed buffer\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         /*
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
                 }
                 if ((rd = fread(&lseg_sz, 2, 1, infp)) != 1) {
                     fprintf(stderr, "Only read 0x%x bytes of 0x%x byte seg_sz\n", rd, 2);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
                 /* 
                  * lseg_sz can be zero if this is the last compressed
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
             if ((lseg_sz != 0) && (decomp_rd != decomp_target)) {
                 fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d frames\n",
                         sn, decomp_target, decomp_rd, cframe);
-                exit(1);
+                exit(EXIT_FAILURE);
             }
             else 
                 if (debug) fprintf(stderr, "Segment %d: Decompressed %d of %d in %d frames\n",
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 
             if (seg_head->seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
-                exit(1);
+                exit(EXIT_FAILURE);
             }
             sn++;
             free(seg_head);
@@ -256,17 +256,18 @@ static void usage(void)
     fprintf(stderr, "            Specify the output file. The default is a file called 'dcomp.out'\n");
     fprintf(stderr, "            in the current working directory.\n");
     fprintf(stderr, "      -s N\n");
-    fprintf(stderr, "            Start decompressing at data segment N. Data segments are\n");
-    fprintf(stderr, "            counted from zero beginning after after the two header\n");
-    fprintf(stderr, "            segments and the vtbl segment. Default is the first segment, 0.\n");
+    fprintf(stderr, "            Start decompressing at data segment N. Data segments are counted\n");
+    fprintf(stderr, "            from zero beginning after after the two header segments and the\n");
+    fprintf(stderr, "            Default is the first segment, i.e `-s 0`.\n");
     fprintf(stderr, "      -f\n");
     fprintf(stderr, "            Overwrite existing output. %s will refuse to overwrite existing\n",
             __progname);
-    fprintf(stderr, "            files unless this option is specified.\n");
+    fprintf(stderr, "            files unless this option is specified. If you are not interested\n");
+    fprintf(stderr, "            in the file output, try `-o /dev/null -f`.\n");
     fprintf(stderr, "      -t N\n");
-    fprintf(stderr, "            Stop compressing at data segment N. This is exclusive, so\n");
-    fprintf(stderr, "            N-1 will be the last segment to decompressed. The default is\n");
-    fprintf(stderr, "            is to decompress to the end of the archive.\n");
+    fprintf(stderr, "            Stop compressing at data segment N. This is exclusive, so N-1 will\n");
+    fprintf(stderr, "            be the last segment to decompressed. The default is to decompress\n");
+    fprintf(stderr, "            decompress all remaining extents in archive.\n");
     fprintf(stderr, "      -d\n");
     fprintf(stderr, "            Debug output. This option may be specified multiple times to\n");
     fprintf(stderr, "            increase verbosity.\n");
