@@ -32,17 +32,17 @@ fhead113 *getFHeader(FILE * fp)
 
     if ((hdr = (fhead113 *) malloc(FHDR_SZ)) == NULL) {
         fprintf(stderr, "Failed to allocate space for header\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if ((rd = fread(hdr, FHDR_SZ, 1, fp)) != 1) {
         fprintf(stderr, "Only read 0x%x bytes of 0x%x byte header\n", rd,
                 FHDR_SZ);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if (hdr->sig != 0xAA55AA55) {
         fprintf(stderr, "Invalid header signature 0x%x != 0xAA55AA55\n",
                 hdr->sig);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     return (hdr);
@@ -57,18 +57,18 @@ vtbl113 *getVTBL(FILE * fp)
     sz = sizeof(vtbl113);
     if ((vtbl = (vtbl113 *) malloc(sz)) == NULL) {
         fprintf(stderr, "Failed to allocate space for vtbl\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if ((rd = fread(vtbl, sz, 1, fp)) != 1) {
         fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd,
                 sz);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if (strncasecmp((const char *) vtbl->tag, "VTBL", 4) != 0) {
         fprintf(stderr,
                 "Missing 'VTBL' tag, invalid record at offset 0x%lx ",
                 ftell(fp));
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     return (vtbl);
@@ -130,12 +130,12 @@ cseg_head* getSegmentHeader(FILE * fp)
     sz = sizeof(cseg_head);
     if ((seg_head = (cseg_head *) malloc(sz)) == NULL) {
         fprintf(stderr, "Failed to allocate space for cseg_head\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     if ((rd = fread(seg_head, sz, 1, fp)) != 1) {
         fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd,
                 sz);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     return (seg_head);
@@ -155,14 +155,14 @@ void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn,
         fprintf(stderr,
                 "Unable to seek to compressed segment: %ld (%ld)\n",
                 ftell(infp), (sn + 3) * SEG_SZ);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     if ((rd = fread(cbuf, SEG_SZ, 1, infp)) != 1) {
         fprintf(stderr,
                 "Only read 0x%x bytes of 0x%lx compressed segment\n", rd,
                 SEG_SZ);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -182,7 +182,7 @@ unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, unsigned
     
     if ((wr = fwrite(dbuf, seg_head->seg_sz, 1, outfp)) != 1) {
         fprintf(stderr, "Only wrote 0x%x bytes of 0x%x byte buffer\n", wr, seg_head->seg_sz);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     return (wr + 3);

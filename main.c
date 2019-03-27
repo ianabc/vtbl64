@@ -1,16 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
+#include <unistd.h>
 #include "qic.h"
 
+extern char *__progname;
+
+static void usage(void);
 
 int debug = 0;
-
 
 int main(int argc, char **argv)
 {
 
     FILE *infp, *outfp;
+
+    char *infilename = NULL;
+    char *outfilename = "dcomp.out";
+
+    int overwrite = 0;
 
     fhead113 *fhead1, *fhead2;
     vtbl113 *vtbl;
@@ -24,10 +32,19 @@ int main(int argc, char **argv)
     unsigned int rd, decomp_rd, decomp_target;
     int c, cframe;
 
-    while((c = getopt(argc, argv, "ds:t:")) != -1) {
+    while((c = getopt(argc, argv, "dfi:s:t:")) != -1) {
         switch(c) {
             case 'd':
                 debug++;
+                break;
+            case 'i':
+                infilename = optarg;
+                break;
+            case 'o':
+                outfilename = optarg;
+                break;
+            case 'f':
+                overwrite = 1;
                 break;
             case 's':
                 startsn = atoi(optarg);
@@ -35,14 +52,24 @@ int main(int argc, char **argv)
             case 't':
                 endsn = atoi(optarg);
                 break;
+            case 'h':
+                usage();
+            case '?':
             default:
-                exit(1);
+                fprintf(stderr, "%s: option '-%c' is invalid: ignored\n",
+                        argv[0], optopt);
+                break;
         }
     }
+    
+    if (infilename == NULL) {
+        fprintf(stderr, "No input file specified\n");
+        usage();
+    }
 
-    if (!(infp = fopen("../Image.113", "rb"))) {
-        fprintf(stderr, "Can't open input file '../Image.113'\n");
-        exit(1);
+    if (!(infp = fopen(infilename, "rb"))) {
+        fprintf(stderr, "Can't open input file '%s'\n", infilename);
+        exit(EXIT_FAILURE);
     }
 
     fhead1 = getFHeader(infp);
@@ -51,7 +78,7 @@ int main(int argc, char **argv)
     if (ftell(infp) != SEG_SZ) {
         fprintf(stderr, "Unable to seek to second header: %ld (%ld)\n",
                 ftell(infp), SEG_SZ);
-        exit(1);
+        exit(EXIT_FAILURE);
     }
     fhead2 = getFHeader(infp);
 
@@ -69,20 +96,27 @@ int main(int argc, char **argv)
 
         fprintf(stderr, "File is compressed\n");
 
-        if (!(outfp = fopen("dcomp.out", "wb"))) {
-            fprintf(stderr, "Can't ouput dcomp.out for output\n");
-            exit(1);
+        if ( (access(outfilename, R_OK) != -1) && !(overwrite)) {
+            fprintf(stderr, "Output file \"%s\" exists! Remove it or use -f to overwrite!\n", 
+                    outfilename);
+            exit(EXIT_FAILURE);
+        }
+        else {
+            if (!(outfp = fopen(outfilename, "wb"))) {
+                fprintf(stderr, "Can't ouput dcomp.out for output\n");
+                exit(EXIT_FAILURE);
+            }
         }
         
-        if ((cbuf = (BYTE *) calloc(MAX_SEG_SZ, 1)) == NULL) {
+        if ((cbuf = (BYTE *) calloc(SEG_SZ, 1)) == NULL) {
             fprintf(stderr,
                     "Failed to allocate space for compressed buffer\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
         if ((dbuf = (BYTE *) calloc(MAX_SEG_SZ, 1)) == NULL) {
             fprintf(stderr,
                     "Failed to allocate space for uncompressed buffer\n");
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         /*
@@ -153,7 +187,7 @@ int main(int argc, char **argv)
                 }
                 if ((rd = fread(&lseg_sz, 2, 1, infp)) != 1) {
                     fprintf(stderr, "Only read 0x%x bytes of 0x%x byte seg_sz\n", rd, 2);
-                    exit(1);
+                    exit(EXIT_FAILURE);
                 }
                 /* 
                  * lseg_sz can be zero if this is the last compressed
@@ -176,7 +210,7 @@ int main(int argc, char **argv)
             if ((lseg_sz != 0) && (decomp_rd != decomp_target)) {
                 fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d frames\n",
                         sn, decomp_target, decomp_rd, cframe);
-                exit(1);
+                exit(EXIT_FAILURE);
             }
             else 
                 if (debug) fprintf(stderr, "Segment %d: Decompressed %d of %d in %d frames\n",
@@ -187,7 +221,7 @@ int main(int argc, char **argv)
 
             if (seg_head->seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
-                exit(1);
+                exit(EXIT_FAILURE);
             }
             sn++;
             free(seg_head);
@@ -210,3 +244,36 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
+
+
+static void usage(void)
+{
+    fprintf(stderr, "Usage: %s -i <input file> [OPTIONS...] \n", __progname);
+    fprintf(stderr, "   OPTIONS\n");
+    fprintf(stderr, "      -i <file>\n");
+    fprintf(stderr, "            Specify the input file. This option is MANDATORY.\n");
+    fprintf(stderr, "      -o <file>\n");
+    fprintf(stderr, "            Specify the output file. The default is a file called 'dcomp.out'\n");
+    fprintf(stderr, "            in the current working directory.\n");
+    fprintf(stderr, "      -s N\n");
+    fprintf(stderr, "            Start decompressing at data segment N. Data segments are counted\n");
+    fprintf(stderr, "            from zero beginning after after the two header segments and the\n");
+    fprintf(stderr, "            Default is the first segment, i.e `-s 0`.\n");
+    fprintf(stderr, "      -f\n");
+    fprintf(stderr, "            Overwrite existing output. %s will refuse to overwrite existing\n",
+            __progname);
+    fprintf(stderr, "            files unless this option is specified. If you are not interested\n");
+    fprintf(stderr, "            in the file output, try `-o /dev/null -f`.\n");
+    fprintf(stderr, "      -t N\n");
+    fprintf(stderr, "            Stop compressing at data segment N. This is exclusive, so N-1 will\n");
+    fprintf(stderr, "            be the last segment to decompressed. The default is to decompress\n");
+    fprintf(stderr, "            decompress all remaining extents in archive.\n");
+    fprintf(stderr, "      -d\n");
+    fprintf(stderr, "            Debug output. This option may be specified multiple times to\n");
+    fprintf(stderr, "            increase verbosity.\n");
+    fprintf(stderr, "      -h\n");
+    fprintf(stderr, "            Display this message\n");
+
+    exit(EXIT_FAILURE);
+}
+
