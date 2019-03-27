@@ -2,7 +2,7 @@
 #in NH 5/13/17 had to add -lrt to most of executables so clock_gettime() could be found
 
 CC = gcc
-CFLAGS = -g -Wall -Dunix
+CFLAGS = -g -Wall
 CFLAGSEXTRA = -ggdb -ansi -pedantic
 
 .SUFFIXES:
