@@ -22,7 +22,7 @@ int main(int argc, char **argv)
     int startsn = -1, endsn = -1;
     unsigned long decomp_sz = 0;
     unsigned int rd, decomp_rd, decomp_target;
-    int c, pass;
+    int c, cframe;
 
     while((c = getopt(argc, argv, "ds:t:")) != -1) {
         switch(c) {
@@ -136,15 +136,15 @@ int main(int argc, char **argv)
              */
             cum_seg_sz = seg_head->seg_sz;
 
-            pass = 1;
+            cframe = 1;
             decomp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
             
             /*
              * Handle any additonal compressed extents
              */
-            while (( decomp_rd < decomp_target ) && ( pass < DCOMP_MAX_EXTENTS )) {
+            while (( decomp_rd < decomp_target ) && ( cframe < DCOMP_MAX_EXTENTS )) {
                 
-                pass++;
+                cframe++;
 
                 /* Seek to new seg_sz marker and read */
                 fseek(infp, (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz, SEEK_SET);
@@ -166,8 +166,8 @@ int main(int argc, char **argv)
                     break;
                 }
 
-                if (debug) fprintf(stderr, "Decompress pass %d at 0x%lx with new lseg_sz 0x%x at 0x%x \n",
-                        pass, (3 + sn) * SEG_SZ + sizeof(seg_head) + cum_seg_sz + sizeof(lseg_sz), 
+                if (debug) fprintf(stderr, "Decompress frame %d at 0x%lx with new lseg_sz 0x%x at 0x%x \n",
+                        cframe, (3 + sn) * SEG_SZ + sizeof(seg_head) + cum_seg_sz + sizeof(lseg_sz), 
                         lseg_sz, cum_seg_sz);
                 
                 decomp_rd += decompressSegment(&cbuf[cum_seg_sz + sizeof(lseg_sz)], &dbuf[decomp_rd], lseg_sz);
@@ -175,12 +175,12 @@ int main(int argc, char **argv)
             }
             if ((lseg_sz != 0) && (decomp_rd != decomp_target)) {
                 fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d extents\n",
-                        sn, decomp_target, decomp_rd, pass);
+                        sn, decomp_target, decomp_rd, cframe);
                 exit(1);
             }
             else 
                 if (debug) fprintf(stderr, "Segment %d: Decompressed %d of %d in %d extents\n",
-                        sn, decomp_rd, decomp_target, pass);
+                        sn, decomp_rd, decomp_target, cframe);
 
             decomp_sz += decomp_rd;
             writeSegment(outfp, dbuf, seg_head, decomp_rd);
