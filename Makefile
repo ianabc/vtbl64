@@ -2,8 +2,8 @@
 #in NH 5/13/17 had to add -lrt to most of executables so clock_gettime() could be found
 
 CC = gcc
-CFLAGS = -g -Wall
-LDFLAGS = -lrt -g
+CFLAGS = -g -Wall -Dunix
+CFLAGSEXTRA = -ggdb -ansi -pedantic
 
 .SUFFIXES:
 .SUFFIXES: .c .o
@@ -15,23 +15,27 @@ LDFLAGS = -lrt -g
 prefix = /usr/local
 exec_prefix = $(prefix)
 
-PROGRAMS := rd113 iocfg slib
+PROGRAMS := vtbl64
 
 all: $(PROGRAMS)
 
-PROG=rd113
-$(PROG): $(PROG).o
-	gcc -g -o $@ -g -lrt $^
+PROG = vtbl64
+$(PROG): main.o qic122.o qic113.o bitsbytes.o
+	$(CC) -g -o $@ $^
 
-PROG = iocfg
-$(PROG): $(PROG).o
-	gcc -g -o $@ -g -lrt $^
+$main.o: main.c qic.h
+	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
 
-PROG = slib
-$(PROG): $(PROG).o
-	gcc -g -o $@ -g -lrt $^
+qic122.o: qic122.c qic.h
+	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
+
+qic113.o: qic113.c qic.h
+	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
+
+bitsbytes.o: bitsbytes.c qic.h
+	$(CC) $(CFLAGS) $(CFLAGSEXTRA) -o $@ -c $<
 
 .PHONY: clean
 
 clean:
-	$(RM) *.o -f $(obj) rd113 iocfg slib
+	$(RM) -f *.o $(PROGRAMS)
