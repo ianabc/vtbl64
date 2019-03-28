@@ -22,16 +22,18 @@ code, and isn't intended for practical use.
   info](http://www.willsworks.net/file-format/iomega-1-step-backup/rd113-info)
   * [QIC-113revG](https://www.qic.org/html/standards/11x.x/qic113g.pdf) This
   standard describes many of the structures and features inside IOMega backups
-  * [QIC-122]
-  * Data Compression - The Complete Reference, David Salomon. This book has a
-  lot of useful information. It describes
+  * [QIC-122](https://www.qic.org/html/standards/12x.x/qic122b.pdf) This
+  standard describes the compression method.
+  * [Data Compression - The Complete
+  Reference](https://books.google.ca/books?id=ujnQogzx_2EC&lpg=PA184&ots=FqmwuF6smT&dq=QIC-122%20compression&pg=PA184#v=onepage&q&f=false),
+  David Salomon. This book has a lot of useful information. It describes
   [LZ77](https://en.wikipedia.org/wiki/LZ77_and_LZ78) (of which QIC-122 is a
-  variant) in detail, and has a small section on QIC-122. This may or may not
-  still be available on [google
-  books](https://books.google.ca/books?id=ujnQogzx_2EC&lpg=PA184&ots=FqmwuF6smT&dq=QIC-122%20compression&pg=PA184#v=onepage&q&f=false).
+  variant) in detail, and has a small section on QIC-122.
+
 ## Building vtbl64
+
 The code should be valid ANSI C, but I assume linux in few places so it might
-not work on other systems. To compile `vtbl64` simply run make in the root
+not work on other systems. To compile `vtbl64` simply run `make` in the root
 directory. Running `vtbl64 -h` will give you a summary of the available options.
 
 
