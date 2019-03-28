@@ -51,7 +51,7 @@ contained, they were either compressed or encrypted, or both!.
 
 In principal, if you can find a copy of the IOMega Peerleess software, and an old
 windows installation, and the necessary drivers... you can extract the archive
-that way.  I did eventually manage to do this as an alternative (via VirtualBox
+that way.  I eventually manage to do this as an alternative (via VirtualBox
 with passing the USB device through), but I don't recommend it. It is hard and
 will probably continue to get harder as the software and supported operating
 systems age.
@@ -75,11 +75,22 @@ correction code (ECC)", but that doesn't seem to have been implemented in the
 IOMega product.
 
 ### Header 1
+The first segment of the file is occupied by a header (see fhead113 in
+[qic.h](qic.h)).
+
 ### Header 2
+
+The second segment of the file is occupied by another header (see fhead113 in
+[qic.h](qic.h)).
+
 ### VTBL
+The third segment of the file is occupied by VTBL header (see vtbl113 in
+[qic.h](qic.h)). This header is described in the QIC-113 standard.
+
+
 ### Data Segments
-After running will's vtbl program, I found that the archive I was playing with
-was compressed. As far as I understand it, the compression is implemented by
+After running will's `rd113` program, I found that the archive I was playing
+with was compressed. As I understand it, the compression is implemented by
 considering the uncompressed files as one long byte stream. That stream is
 broken up into pieces, compressed and written into the segments described above.
 These data segments consist of a small header followed by chunks of compressed
