@@ -36,13 +36,24 @@ The code should be valid ANSI C, but I assume linux in few places so it might
 not work on other systems. To compile `vtbl64` simply run `make` in the root
 directory. Running `vtbl64 -h` will give you a summary of the available options.
 
-
-## Archive Structure
+## Why?
 
 My experience with these files started with a colleague of mine turning up at my
 office with an IOMega Peerless 20GB disk and a story about some TeX files for a
-textbook he wrote in the early 2000s. Mounting the disk reveals a single large
-file called Image.113, in my case of around 3.2GB in size.
+textbook he wrote in the early 2000s. Mounting the disk revealed a single large
+file called Image.113, in my case of around 3.2GB in size. In principal the
+IOMega Peerleess backup software can be used to work with these backups, but
+that assumes you have a(n old) windows installation and access to the software.
+Incidentally, I eventually managed to get a copy of Windows98 running via
+virtualbox, with the 1 step backup program and the IOMega drive passed through
+as a USB device, but I wouldn't recoommend it, and it'll probably continue to
+get harder to do as the software ages.
+
+That was the problem, and the eventual solution was to use the code Will wrote
+(along with some patches he was kind enough to create for me!) to handle the
+extraction on my (Linux) desktop.
+
+## Image.113 - Archive Structure
 
 After reading up a bit the archive format seems to follow some of the QIC-113
 standard (see the links above). The file is split into segments of 0x7400 bytes,
