@@ -20,17 +20,17 @@ code, and isn't intended for practical use.
   info](http://www.willsworks.net/file-format/iomega-1-step-backup/1step-info)
     * [rd113
   info](http://www.willsworks.net/file-format/iomega-1-step-backup/rd113-info)
-  * [QIC-113revG](https://www.qic.org/html/standards/11x.x/qic113g.pdf) This
-  standard describes many of the structures and features inside IOMega backups
-  * [QIC-122](https://www.qic.org/html/standards/12x.x/qic122b.pdf) This
-  standard describes the compression method.
+  * The [QIC-113revG](https://www.qic.org/html/standards/11x.x/qic113g.pdf)
+  standard describes many of the structures and features inside IOMega backups.
+  * The [QIC-122](https://www.qic.org/html/standards/12x.x/qic122b.pdf) standard
+  describes the compression method used.
   * [Data Compression - The Complete
   Reference](https://books.google.ca/books?id=ujnQogzx_2EC&lpg=PA184&ots=FqmwuF6smT&dq=QIC-122%20compression&pg=PA184#v=onepage&q&f=false),
   David Salomon. This book has a lot of useful information. It describes
   [LZ77](https://en.wikipedia.org/wiki/LZ77_and_LZ78) (of which QIC-122 is a
   variant) in detail, and has a small section on QIC-122.
 
-## Building vtbl64
+## Building the Code
 
 The code should be valid ANSI C, but I assume linux in few places so it might
 not work on other systems. To compile `vtbl64` simply run `make` in the root
@@ -38,20 +38,29 @@ directory. Running `vtbl64 -h` will give you a summary of the available options.
 
 ## Why?
 
-My experience with these files started with a colleague of mine turning up at my
-office with an IOMega Peerless 20GB disk and a story about some TeX files for a
-textbook he wrote in the early 2000s. Mounting the disk revealed a single large
-file called Image.113, in my case of around 3.2GB in size. In principal the
-IOMega Peerleess backup software can be used to work with these backups, but
-that assumes you have a(n old) windows installation and access to the software.
-Incidentally, I eventually managed to get a copy of Windows98 running via
-virtualbox, with the 1 step backup program and the IOMega drive passed through
-as a USB device, but I wouldn't recoommend it, and it'll probably continue to
-get harder to do as the software ages.
+My experience with IOMega backups started when a colleague of mine turned up at
+my office with an IOMega Peerless 20GB disk and a story about some missing TeX
+files for a textbook he wrote in the early 2000s. The files were the only copies
+necessary for a new edition of the book, but the software to necessary to do
+this didn't seem to exist any more.
 
-That was the problem, and the eventual solution was to use the code Will wrote
-(along with some patches he was kind enough to create for me!) to handle the
-extraction on my (Linux) desktop.
+I was able to Mount the disk as a USB storage device which revealed a single
+large file called Image.113, in my case of around 3.2GB in size. I took a peek
+inside the archive, but there didn't seem to be any way to extract the files
+contained, they were either compressed or encrypted, or both!.
+
+In principal, if you can find a copy of the IOMega Peerleess software, and an old
+windows installation, and the necessary drivers... you can extract the archive
+that way.  I did eventually manage to do this as an alternative (via VirtualBox
+with passing the USB device through), but I don't recommend it. It is hard and
+will probably continue to get harder as the software and supported operating
+systems age.
+
+In the end, we were able to use the code on Will's site to extract most of the
+archive (enough to get access to the book files), then, with some help from Will
+himself, to fully extract the archive. The rest of this README describes what we
+learned during that process.
+
 
 ## Image.113 - Archive Structure
 
