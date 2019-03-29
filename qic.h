@@ -90,13 +90,13 @@ int getBit(BYTE *cbuf, unsigned int *bit_pos);
 
 BYTE getByte(BYTE *cbuf, unsigned int *bit_pos);
 
-fhead113 *getFHeader(FILE *fp);
+fhead113 *getFHeader(FILE *fp, unsigned int sn);
 
 vtbl113 *getVTBL(FILE *fp);
 
 void displayVTBL(vtbl113 *vtbl);
 
-cseg_head *getSegmentHeader(FILE * fp);
+cseg_head *getSegmentHeader(FILE * fp, unsigned int sn);
 
 void getSegmentData(FILE *infp, BYTE *cbuf, unsigned int sn, unsigned int seg_sz);
 

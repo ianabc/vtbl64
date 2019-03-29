@@ -25,7 +25,7 @@ char *OStype[] = {
 };
 
 
-fhead113 *getFHeader(FILE * fp)
+fhead113 *getFHeader(FILE * fp, unsigned int segment)
 {
     fhead113 *hdr = NULL;
     unsigned int rd;
@@ -34,11 +34,18 @@ fhead113 *getFHeader(FILE * fp)
         fprintf(stderr, "Failed to allocate space for header\n");
         exit(EXIT_FAILURE);
     }
+
+    fseek(fp, segment * SEG_SZ, SEEK_SET);
+    if (ftell(fp) != segment * SEG_SZ) { 
+        fprintf(stderr, "Unable to seek to header segment: %d\n", segment);
+        exit(EXIT_FAILURE);
+    }
     if ((rd = fread(hdr, FHDR_SZ, 1, fp)) != 1) {
         fprintf(stderr, "Only read 0x%x bytes of 0x%x byte header\n", rd,
                 FHDR_SZ);
         exit(EXIT_FAILURE);
     }
+
     if (hdr->sig != 0xAA55AA55) {
         fprintf(stderr, "Invalid header signature 0x%x != 0xAA55AA55\n",
                 hdr->sig);
@@ -59,11 +66,18 @@ vtbl113 *getVTBL(FILE * fp)
         fprintf(stderr, "Failed to allocate space for vtbl\n");
         exit(EXIT_FAILURE);
     }
+    
+    fseek(fp, 2 * SEG_SZ, SEEK_SET);
+    if (ftell(fp) != 2 * SEG_SZ) { 
+        fprintf(stderr, "Unable to seek to vtbl header\n");
+        exit(EXIT_FAILURE);
+    }
     if ((rd = fread(vtbl, sz, 1, fp)) != 1) {
         fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd,
                 sz);
         exit(EXIT_FAILURE);
     }
+
     if (strncasecmp((const char *) vtbl->tag, "VTBL", 4) != 0) {
         fprintf(stderr,
                 "Missing 'VTBL' tag, invalid record at offset 0x%lx ",
@@ -122,7 +136,7 @@ void displayVTBL(vtbl113 * vtbl)
 }
 
 
-cseg_head* getSegmentHeader(FILE * fp)
+cseg_head* getSegmentHeader(FILE * fp, unsigned int sn)
 {
     unsigned int sz, rd;
     cseg_head *seg_head;
@@ -131,6 +145,10 @@ cseg_head* getSegmentHeader(FILE * fp)
     if ((seg_head = (cseg_head *) malloc(sz)) == NULL) {
         fprintf(stderr, "Failed to allocate space for cseg_head\n");
         exit(EXIT_FAILURE);
+    }
+    fseek(fp, (3 + sn) * SEG_SZ, SEEK_SET);
+    if (ftell(fp) != (3 + sn) * SEG_SZ) {
+        fprintf(stderr, "Unable to seek to compressed segment\n");
     }
     if ((rd = fread(seg_head, sz, 1, fp)) != 1) {
         fprintf(stderr, "Only read 0x%x bytes of 0x%x byte vtbl\n", rd,

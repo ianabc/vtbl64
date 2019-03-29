@@ -72,20 +72,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    fhead1 = getFHeader(infp);
-
-    fseek(infp, SEG_SZ, SEEK_SET);
-    if (ftell(infp) != SEG_SZ) {
-        fprintf(stderr, "Unable to seek to second header: %ld (%ld)\n",
-                ftell(infp), SEG_SZ);
-        exit(EXIT_FAILURE);
-    }
-    fhead2 = getFHeader(infp);
-
-
-    fseek(infp, 2 * SEG_SZ, SEEK_SET);
-    if (ftell(infp) != 2 * SEG_SZ) { fprintf(stderr, "Unable to seek to vtbl\n");
-    }
+    sn = 0;
+    fhead1 = getFHeader(infp, sn++);
+    fhead2 = getFHeader(infp, sn++);
     vtbl = getVTBL(infp);
     displayVTBL(vtbl);
 
@@ -135,17 +124,9 @@ int main(int argc, char **argv)
              * the _next_ segment headers to figure out how many bytes we
              * should be expecting.
              */
-            fseek(infp, (3 + sn) * SEG_SZ, SEEK_SET);
-            if (ftell(infp) != (3 + sn) * SEG_SZ) {
-                fprintf(stderr, "Unable to seek to compressed segment\n");
-            }
-            seg_head = getSegmentHeader(infp);
+            seg_head = getSegmentHeader(infp, sn);
+            next_seg_head = getSegmentHeader(infp, sn+1);
 
-            fseek(infp, (3 + sn + 1) * SEG_SZ, SEEK_SET);
-            if (ftell(infp) != (3 + sn + 1) * SEG_SZ) {
-                fprintf(stderr, "Unable to seek to next compressed segment\n");
-            }
-            next_seg_head = getSegmentHeader(infp);
             if (sn != 0 && next_seg_head->cum_sz == 0
                 && next_seg_head->cum_sz_hi == 0) {
                 fprintf(stderr, "Catalog found in segment %u\n", sn);
