@@ -3,7 +3,7 @@
 
 CC = gcc
 CFLAGS = -g -Wall
-CFLAGSEXTRA = -ggdb -ansi -pedantic
+CFLAGSEXTRA = -ggdb -ansi -pedantic -Werror
 
 .SUFFIXES:
 .SUFFIXES: .c .o
