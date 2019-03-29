@@ -145,6 +145,8 @@ int main(int argc, char **argv)
 
             decomp_rd = decompressExtent(cbuf, dbuf);
             decomp_sz += decomp_rd;
+            
+            if (debug) fprintf(stderr, "Decompress: Expected %u, produced %u\n", decomp_target, decomp_rd);
 
             writeSegment(outfp, dbuf, seg_head, decomp_rd);
             /*
