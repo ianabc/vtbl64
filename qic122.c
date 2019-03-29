@@ -26,15 +26,16 @@ unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf) {
 
         comp_rd += comp_sz + 2;
 
-        if (debug > 1) fprintf(stderr, "Decompress frame in %u, %u in, %u out\n", 
-                frame, comp_sz, decomp_frame_rd);
+        if (debug > 1) fprintf(stderr, 
+                "Decompress frame in %u, %u in, %u decompressed so far\n", 
+                frame, comp_sz, decomp_sz);
 
         decomp_frame_rd = decompressFrame(&(cbuf[comp_rd - comp_sz]), 
                 &(dbuf[decomp_sz]), comp_sz);
         decomp_sz += decomp_frame_rd;
 
-        if (debug > 1) fprintf(stderr, "Decompress frame out %u, %u, in, %u out\n", 
-                frame, comp_sz, decomp_frame_rd);
+        if (debug > 1) fprintf(stderr, "Decompress frame out %u, %u, in, %u out, %u total\n", 
+                frame, comp_sz, decomp_frame_rd, decomp_sz);
         frame++;
 
     }

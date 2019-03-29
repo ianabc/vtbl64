@@ -143,15 +143,9 @@ int main(int argc, char **argv)
 
             getSegmentData(infp, cbuf, sn);
 
-            decomp_rd = 0;
-            /*
-             * Some segments have more than one compressed block. They are
-             * concatenated one after the other.
-             */
-
             decomp_rd = decompressExtent(cbuf, dbuf);
-
             decomp_sz += decomp_rd;
+
             writeSegment(outfp, dbuf, seg_head, decomp_rd);
             /*
             if (seg_head->seg_sz & RAW_SEG) {
