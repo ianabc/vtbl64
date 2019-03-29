@@ -146,8 +146,8 @@ cseg_head* getSegmentHeader(FILE * fp, unsigned int sn)
         fprintf(stderr, "Failed to allocate space for cseg_head\n");
         exit(EXIT_FAILURE);
     }
-    fseek(fp, (3 + sn) * SEG_SZ, SEEK_SET);
-    if (ftell(fp) != (3 + sn) * SEG_SZ) {
+    fseek(fp, sn * SEG_SZ, SEEK_SET);
+    if (ftell(fp) != sn * SEG_SZ) {
         fprintf(stderr, "Unable to seek to compressed segment\n");
     }
     if ((rd = fread(seg_head, sz, 1, fp)) != 1) {
@@ -168,11 +168,11 @@ void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn,
      */
     unsigned int rd;
 
-    fseek(infp, (sn + 3) * SEG_SZ, SEEK_SET);
-    if (ftell(infp) != (sn + 3) * SEG_SZ) {
+    fseek(infp, sn * SEG_SZ, SEEK_SET);
+    if (ftell(infp) != sn * SEG_SZ) {
         fprintf(stderr,
                 "Unable to seek to compressed segment: %ld (%ld)\n",
-                ftell(infp), (sn + 3) * SEG_SZ);
+                ftell(infp), sn * SEG_SZ);
         exit(EXIT_FAILURE);
     }
 

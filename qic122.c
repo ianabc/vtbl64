@@ -1,15 +1,62 @@
 #include <stdio.h>
 #include "qic.h"
 
-unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
+unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf) {
+    /*
+     * Decompress the contents of cbuf into dbuf.
+     *
+     * A compressed extent is composed of one or more compressed frames
+     * concatenated one after the other in cbuf.
+     *
+     * Each compressed frame is prefixed by a 2 byte segment size seg_sz,
+     * followed by seg_sz bytes of data compressed using the algorithm
+     * described in QIC-122b.
+     
+     * After reading each frame, if there are more than 18 bytes remaining in
+     * the segment, read the next two bytes. If they are non-zero, they give
+     * the seg_sz for another compression frame in this segment.
+     *
+     */
+
+    unsigned int decomp_sz = 0, decomp_frame_rd = 0;
+    unsigned int comp_sz = 0, comp_rd = 0;
+    unsigned int frame = 0;
+
+    do {
+
+        comp_sz = (DWORD)cbuf[comp_rd];
+        comp_rd += comp_sz + 2;
+
+        decomp_frame_rd = decompressFrame(&(cbuf[comp_rd]), 
+                &(dbuf[decomp_sz]), comp_sz);
+        decomp_sz += decomp_frame_rd;
+
+        if (debug > 1) fprintf(stderr, "Decompress frame %ud, %ud in, %ud out\n", 
+                frame, comp_sz, decomp_frame_rd);
+        frame++;
+
+    } while(comp_sz);
+
+    return decomp_sz;
+}
+
+
+unsigned int decompressFrame(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
 {
     /*
-     * Decompress binary data according to QIC-122
+     * Decompress binary data according to QIC-122b
      *
-     * Start of data occurs at the third byte of cbuf
-     * End of data marked by 0x180 within 18 bytes of end of cbuf, right padded
-     * with zeros to fill seg_sz should match the difference of these values
-     * Scan backward from the end for marker then check size
+     * cbuf should be positioned at the start of the compressed data. It will
+     * contain a continuous stream of variable bit-width fields of three types
+     *
+     * 1. Raw byte: 0[0-1]{8}
+     * 2. Compressed String:
+     *   a) 11[0-1]{7}([0-1]+), 7 byte offset, length $1
+     *   b) 10[0-1]{11}([0-1]+), 11 byte offset, length $1
+     * 3. End of compression marker: 110000000 (0x180)
+     *
+     * The length field of 2 uses a peculiar encoding which is described in the
+     * README.md document.
      */
 
     /*
