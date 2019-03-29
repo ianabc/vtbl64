@@ -160,23 +160,20 @@ cseg_head* getSegmentHeader(FILE * fp, unsigned int sn)
 }
 
 
-void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn,
-                 unsigned int seg_sz)
-{
+void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn) {
     /*
-     * Read the whole segment, header included
+     * Read the whole segment, minus the header
      */
     unsigned int rd;
-
-    fseek(infp, sn * SEG_SZ, SEEK_SET);
-    if (ftell(infp) != sn * SEG_SZ) {
+    fseek(infp, sn * SEG_SZ + sizeof(cseg_head), SEEK_SET);
+    if (ftell(infp) != sn * SEG_SZ + sizeof(cseg_head)) {
         fprintf(stderr,
                 "Unable to seek to compressed segment: %ld (%ld)\n",
-                ftell(infp), sn * SEG_SZ);
+                ftell(infp), sn * SEG_SZ + sizeof(cseg_head));
         exit(EXIT_FAILURE);
     }
 
-    if ((rd = fread(cbuf, SEG_SZ, 1, infp)) != 1) {
+    if ((rd = fread(cbuf, SEG_SZ - sizeof(cseg_head), 1, infp)) != 1) {
         fprintf(stderr,
                 "Only read 0x%x bytes of 0x%lx compressed segment\n", rd,
                 SEG_SZ);
@@ -193,16 +190,10 @@ unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, unsigned
      */
     wr += fwrite(&(seg_head->cum_sz),    sizeof(seg_head->cum_sz),    1, outfp);
     wr += fwrite(&(seg_head->cum_sz_hi), sizeof(seg_head->cum_sz_hi), 1, outfp);
-    wr += fwrite(&(seg_head->seg_sz),    sizeof(seg_head->seg_sz),    1, outfp);
 
-    if (wr != 3)
+    if (wr != 2)
         fprintf(stderr, "Failed to write segment header.\n");
-    
-    if ((wr = fwrite(dbuf, seg_head->seg_sz, 1, outfp)) != 1) {
-        fprintf(stderr, "Only wrote 0x%x bytes of 0x%x byte buffer\n", wr, seg_head->seg_sz);
-        exit(EXIT_FAILURE);
-    }
 
-    return (wr + 3);
+    return (wr + 2);
     
 }

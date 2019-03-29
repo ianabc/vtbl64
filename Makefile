@@ -1,7 +1,7 @@
 #distribution version of makefile for *.113  iomega backup programs  
 #in NH 5/13/17 had to add -lrt to most of executables so clock_gettime() could be found
 
-CC = gcc
+CC?=gcc
 CFLAGS = -g -Wall
 CFLAGSEXTRA = -ggdb -ansi -pedantic -Werror
 

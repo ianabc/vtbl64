@@ -25,7 +25,6 @@ int main(int argc, char **argv)
     cseg_head *seg_head, *next_seg_head;
     BYTE *cbuf;
     BYTE *dbuf;
-    WORD cum_seg_sz;
     unsigned int sn = 0;
     int startsn = -1, endsn = -1;
     unsigned long decomp_sz = 0;
@@ -139,28 +138,27 @@ int main(int argc, char **argv)
             }
 
 
-            fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n",
-                    sn, seg_head->cum_sz, seg_head->cum_sz_hi,
-                    seg_head->seg_sz);
+            fprintf(stderr, "Reading compressed segment %d, %u, %u\n",
+                    sn, seg_head->cum_sz, seg_head->cum_sz_hi);
 
-            getSegmentData(infp, cbuf, sn, seg_head->seg_sz);
+            getSegmentData(infp, cbuf, sn);
 
             decomp_rd = 0;
             /*
              * Some segments have more than one compressed block. They are
              * concatenated one after the other.
              */
-            cum_seg_sz = seg_head->seg_sz;
 
             decomp_rd = decompressExtent(cbuf, dbuf);
 
             decomp_sz += decomp_rd;
             writeSegment(outfp, dbuf, seg_head, decomp_rd);
-
+            /*
             if (seg_head->seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
                 exit(EXIT_FAILURE);
             }
+            */
             sn++;
             free(seg_head);
             free(next_seg_head);

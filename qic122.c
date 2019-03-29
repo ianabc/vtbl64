@@ -22,20 +22,22 @@ unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf) {
     unsigned int comp_sz = 0, comp_rd = 0;
     unsigned int frame = 0;
 
-    do {
+    while( (comp_sz = ((cbuf[comp_rd+1] & 0xff) << 8) | (cbuf[comp_rd] & 0xff)) != 0) {
 
-        comp_sz = (DWORD)cbuf[comp_rd];
         comp_rd += comp_sz + 2;
 
-        decomp_frame_rd = decompressFrame(&(cbuf[comp_rd]), 
+        if (debug > 1) fprintf(stderr, "Decompress frame in %u, %u in, %u out\n", 
+                frame, comp_sz, decomp_frame_rd);
+
+        decomp_frame_rd = decompressFrame(&(cbuf[comp_rd - comp_sz]), 
                 &(dbuf[decomp_sz]), comp_sz);
         decomp_sz += decomp_frame_rd;
 
-        if (debug > 1) fprintf(stderr, "Decompress frame %ud, %ud in, %ud out\n", 
+        if (debug > 1) fprintf(stderr, "Decompress frame out %u, %u, in, %u out\n", 
                 frame, comp_sz, decomp_frame_rd);
         frame++;
 
-    } while(comp_sz);
+    }
 
     return decomp_sz;
 }
@@ -71,7 +73,7 @@ unsigned int decompressFrame(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     /*
      * Skip over header to 10th byte
      */
-    bit_pos = 80;
+    bit_pos = 0;
 
 
     while(1) {
