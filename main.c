@@ -232,6 +232,7 @@ int main(int argc, char **argv)
         /*
          * Still have the catalog to deal with
          */
+        fclose(outfp);
     } else {
         fprintf(stderr, "File is not compressed\n");
     }
@@ -240,7 +241,6 @@ int main(int argc, char **argv)
     free(fhead2);
     free(vtbl);
     fclose(infp);
-    fclose(outfp);
 
     return EXIT_SUCCESS;
 }
