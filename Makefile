@@ -3,7 +3,8 @@
 
 CC?=gcc
 CFLAGS = -g -Wall
-CFLAGSEXTRA = -ggdb -ansi -pedantic -Werror
+CFLAGSEXTRA = -ggdb -ansi -pedantic -Werror -W -Wmissing-prototypes \
+			  -Wstrict-prototypes
 
 .SUFFIXES:
 .SUFFIXES: .c .o

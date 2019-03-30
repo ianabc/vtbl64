@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "qic.h"
 
 unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf) {
@@ -159,6 +160,14 @@ unsigned int decompressFrame(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 if(debug > 2) fprintf(stderr, " 0x%x", dbuf[didx]);
             }
         }
+    }
+
+    /*
+     * Check we read the entire frame, i.e. ciel(bit_pos/8) == seg_sz
+     */
+    if (1 + ((bit_pos - 1) / 8) != seg_sz) {
+        fprintf(stderr, "Decompress frame error, target %u, bit_pos %u\n", seg_sz, bit_pos);
+        exit(EXIT_FAILURE);
     }
     return didx;
 }
