@@ -25,7 +25,7 @@ BYTE getByte(BYTE *cbuf, unsigned int *bit_pos)
     BYTE ret;
     
     for(i = 0, ret=0; i < 8; i++) {
-       ret = (ret << 1) + getBit(cbuf, bit_pos);
+       ret = (BYTE)(ret << 1) + getBit(cbuf, bit_pos);
     }
 
     /*

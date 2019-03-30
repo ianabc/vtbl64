@@ -4,7 +4,7 @@
 CC?=gcc
 CFLAGS = -g -Wall
 CFLAGSEXTRA = -ggdb -ansi -pedantic -Werror -W -Wmissing-prototypes \
-			  -Wstrict-prototypes
+			  -Wstrict-prototypes -Wconversion -Wshadow
 
 .SUFFIXES:
 .SUFFIXES: .c .o
