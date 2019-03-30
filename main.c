@@ -32,7 +32,7 @@ int main(int argc, char **argv)
     unsigned int rd, decomp_rd, decomp_target;
     int c, cframe;
 
-    while((c = getopt(argc, argv, "dfi:s:t:")) != -1) {
+    while((c = getopt(argc, argv, "dfi:o:s:t:")) != -1) {
         switch(c) {
             case 'd':
                 debug++;
