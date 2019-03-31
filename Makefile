@@ -4,8 +4,8 @@
 CC?=gcc
 CFLAGS = -g -Wall
 CFLAGSEXTRA = -ggdb -ansi -pedantic -Werror -W -Wmissing-prototypes \
-			  -Wstrict-prototypes -Wconversion -Wshadow \
-			  -Wcast-qual -Wcast-align -Wnested-externs \
+			  -Wstrict-prototypes -Wconversion -Wshadow -Wpointer-arith \
+			  -Wcast-qual -Wcast-align -Wwrite-strings -Wnested-externs \
 			  -fshort-enums -fno-common -Dinline= -g -ggdb
 
 .SUFFIXES:
