@@ -81,25 +81,27 @@ typedef struct {
 typedef struct {
     DWORD cum_sz;               /* cumulative uncompressed bytes at end this segment */
     DWORD cum_sz_hi;            /* normally zero. High order DWORD of above for > 4Gb */
-    WORD seg_sz;                /* physical bytes in this segment, offset to next header */
 } cseg_head;
 #pragma pack(pop)
 
 
-int getBit(BYTE *cbuf, unsigned int *bit_pos);
+BYTE getBit(BYTE *cbuf, unsigned int *bit_pos);
 
 BYTE getByte(BYTE *cbuf, unsigned int *bit_pos);
 
-fhead113 *getFHeader(FILE *fp);
+fhead113 *getFHeader(FILE *fp, unsigned int sn);
 
 vtbl113 *getVTBL(FILE *fp);
 
 void displayVTBL(vtbl113 *vtbl);
 
-cseg_head *getSegmentHeader(FILE * fp);
+cseg_head *getSegmentHeader(FILE * fp, unsigned int sn);
 
-void getSegmentData(FILE *infp, BYTE *cbuf, unsigned int sn, unsigned int seg_sz);
+void getSegmentData(FILE *infp, BYTE *cbuf, unsigned int sn);
 
-unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, unsigned int decomp_sz);
-unsigned int decompressSegment(BYTE *cbuf, BYTE *dbuf, unsigned int seg_sz);
+unsigned int writeSegment(FILE *outfp, BYTE *dbuf, 
+        cseg_head *seg_head, unsigned int decomp_sz, WORD seg_sz);
+
+unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf);
+unsigned int decompressFrame(BYTE *cbuf, BYTE *dbuf, unsigned int seg_sz);
 #endif

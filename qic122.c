@@ -1,15 +1,69 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "qic.h"
 
-unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
+unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf) {
+    /*
+     * Decompress the contents of cbuf into dbuf.
+     *
+     * A compressed extent is composed of one or more compressed frames
+     * concatenated one after the other in cbuf.
+     *
+     * Each compressed frame is prefixed by a 2 byte segment size seg_sz,
+     * followed by seg_sz bytes of data compressed using the algorithm
+     * described in QIC-122b.
+     
+     * After reading each frame, if there are more than 18 bytes remaining in
+     * the segment, read the next two bytes. If they are non-zero, they give
+     * the seg_sz for another compression frame in this segment.
+     *
+     */
+
+    unsigned int decomp_sz = 0, decomp_frame_rd = 0;
+    unsigned int comp_sz = 0, comp_rd = 0;
+    unsigned int frame = 0;
+
+    /*
+     * Treat the first two bytes of cbuf as a WORD segment size
+     */
+    while((comp_sz = (WORD)cbuf[comp_rd] | (WORD)(cbuf[comp_rd + 1] << 8)) != 0) {
+
+        comp_rd += comp_sz + 2;
+
+        if (debug > 1) fprintf(stderr, 
+                "Decompress frame in %u, %u in, %u decompressed so far\n", 
+                frame, comp_sz, decomp_sz);
+
+        decomp_frame_rd = decompressFrame(&(cbuf[comp_rd - comp_sz]), 
+                &(dbuf[decomp_sz]), comp_sz);
+        decomp_sz += decomp_frame_rd;
+
+        if (debug > 1) fprintf(stderr, "Decompress frame out %u, %u, in, %u out, %u total\n", 
+                frame, comp_sz, decomp_frame_rd, decomp_sz);
+        frame++;
+
+    }
+
+    return decomp_sz;
+}
+
+
+unsigned int decompressFrame(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
 {
     /*
-     * Decompress binary data according to QIC-122
+     * Decompress binary data according to QIC-122b
      *
-     * Start of data occurs at the third byte of cbuf
-     * End of data marked by 0x180 within 18 bytes of end of cbuf, right padded
-     * with zeros to fill seg_sz should match the difference of these values
-     * Scan backward from the end for marker then check size
+     * cbuf should be positioned at the start of the compressed data. It will
+     * contain a continuous stream of variable bit-width fields of three types
+     *
+     * 1. Raw byte: 0[0-1]{8}
+     * 2. Compressed String:
+     *   a) 11[0-1]{7}([0-1]+), 7 byte offset, length $1
+     *   b) 10[0-1]{11}([0-1]+), 11 byte offset, length $1
+     * 3. End of compression marker: 110000000 (0x180)
+     *
+     * The length field of 2 uses a peculiar encoding which is described in the
+     * README.md document.
      */
 
     /*
@@ -24,7 +78,7 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
     /*
      * Skip over header to 10th byte
      */
-    bit_pos = 80;
+    bit_pos = 0;
 
 
     while(1) {
@@ -109,6 +163,14 @@ unsigned int decompressSegment(BYTE * cbuf, BYTE * dbuf, unsigned int seg_sz)
                 if(debug > 2) fprintf(stderr, " 0x%x", dbuf[didx]);
             }
         }
+    }
+
+    /*
+     * Check we read the entire frame, i.e. ciel(bit_pos/8) == seg_sz
+     */
+    if (1 + ((bit_pos - 1) / 8) != seg_sz) {
+        fprintf(stderr, "Decompress frame error, target %u, bit_pos %u\n", seg_sz, bit_pos);
+        exit(EXIT_FAILURE);
     }
     return didx;
 }

@@ -2,7 +2,7 @@
 #include "qic.h"
 
 
-int getBit(BYTE *cbuf, unsigned int *bit_pos)
+BYTE getBit(BYTE *cbuf, unsigned int *bit_pos)
 {
     /*
      * Get the value of the single bit at position bit_pos. This treats the
@@ -21,14 +21,17 @@ int getBit(BYTE *cbuf, unsigned int *bit_pos)
 
 BYTE getByte(BYTE *cbuf, unsigned int *bit_pos)
 {
-    int i, ret;
+    int i;
+    BYTE ret;
     
     for(i = 0, ret=0; i < 8; i++) {
-       ret = (ret << 1) + getBit(cbuf, bit_pos);
+       ret = (BYTE)(ret << 1) + getBit(cbuf, bit_pos);
     }
 
+    /*
     if((debug > 2) && (ret > ' '))
         fprintf(stderr, "%c ", ret);
+    */
 
     if(debug > 2) fprintf(stderr, "0x%x ", ret);
 

@@ -25,12 +25,11 @@ int main(int argc, char **argv)
     cseg_head *seg_head, *next_seg_head;
     BYTE *cbuf;
     BYTE *dbuf;
-    WORD lseg_sz, cum_seg_sz;
     unsigned int sn = 0;
     int startsn = -1, endsn = -1;
     unsigned long decomp_sz = 0;
-    unsigned int rd, decomp_rd, decomp_target;
-    int c, cframe;
+    unsigned int decomp_rd, decomp_target;
+    int c;
 
     while((c = getopt(argc, argv, "dfi:o:s:t:")) != -1) {
         switch(c) {
@@ -72,21 +71,11 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    fhead1 = getFHeader(infp);
-
-    fseek(infp, SEG_SZ, SEEK_SET);
-    if (ftell(infp) != SEG_SZ) {
-        fprintf(stderr, "Unable to seek to second header: %ld (%ld)\n",
-                ftell(infp), SEG_SZ);
-        exit(EXIT_FAILURE);
-    }
-    fhead2 = getFHeader(infp);
-
-
-    fseek(infp, 2 * SEG_SZ, SEEK_SET);
-    if (ftell(infp) != 2 * SEG_SZ) { fprintf(stderr, "Unable to seek to vtbl\n");
-    }
+    sn = 0;
+    fhead1 = getFHeader(infp, sn++);
+    fhead2 = getFHeader(infp, sn++);
     vtbl = getVTBL(infp);
+    sn++;
     displayVTBL(vtbl);
 
     /*
@@ -135,17 +124,9 @@ int main(int argc, char **argv)
              * the _next_ segment headers to figure out how many bytes we
              * should be expecting.
              */
-            fseek(infp, (3 + sn) * SEG_SZ, SEEK_SET);
-            if (ftell(infp) != (3 + sn) * SEG_SZ) {
-                fprintf(stderr, "Unable to seek to compressed segment\n");
-            }
-            seg_head = getSegmentHeader(infp);
+            seg_head = getSegmentHeader(infp, sn);
+            next_seg_head = getSegmentHeader(infp, sn+1);
 
-            fseek(infp, (3 + sn + 1) * SEG_SZ, SEEK_SET);
-            if (ftell(infp) != (3 + sn + 1) * SEG_SZ) {
-                fprintf(stderr, "Unable to seek to next compressed segment\n");
-            }
-            next_seg_head = getSegmentHeader(infp);
             if (sn != 0 && next_seg_head->cum_sz == 0
                 && next_seg_head->cum_sz_hi == 0) {
                 fprintf(stderr, "Catalog found in segment %u\n", sn);
@@ -157,72 +138,23 @@ int main(int argc, char **argv)
             }
 
 
-            fprintf(stderr, "Reading compressed segment %d, %u, %u, %u\n",
-                    sn, seg_head->cum_sz, seg_head->cum_sz_hi,
-                    seg_head->seg_sz);
+            fprintf(stderr, "Reading compressed segment %d, %u, %u\n",
+                    sn, seg_head->cum_sz, seg_head->cum_sz_hi);
 
-            getSegmentData(infp, cbuf, sn, seg_head->seg_sz);
+            getSegmentData(infp, cbuf, sn);
 
-            decomp_rd = 0;
-            /*
-             * Some segments have more than one compressed block. They are
-             * concatenated one after the other.
-             */
-            cum_seg_sz = seg_head->seg_sz;
-
-            cframe = 1;
-            decomp_rd = decompressSegment(cbuf, dbuf, seg_head->seg_sz);
-            
-            /*
-             * Handle any additonal compressed frames
-             */
-            while (( decomp_rd < decomp_target ) && ( cframe < DCOMP_MAX_EXTENTS )) {
-                
-                cframe++;
-
-                /* Seek to new seg_sz marker and read */
-                fseek(infp, (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz, SEEK_SET);
-                if (ftell(infp) != (3 + sn) * SEG_SZ + sizeof(*seg_head) + cum_seg_sz) {
-                    fprintf(stderr, "Unable to seek to next compressed seg_sz\n");
-                }
-                if ((rd = fread(&lseg_sz, 2, 1, infp)) != 1) {
-                    fprintf(stderr, "Only read 0x%x bytes of 0x%x byte seg_sz\n", rd, 2);
-                    exit(EXIT_FAILURE);
-                }
-                /* 
-                 * lseg_sz can be zero if this is the last compressed
-                 * segment, because we don't know next_seg_head->cum_sz. If
-                 * it is zero, we are done.
-                 */
-                if (lseg_sz == 0) {
-                    fprintf(stderr, "lseg_sz set to zero. end decompress loop\n");
-                    decomp_target = decomp_rd;
-                    break;
-                }
-
-                if (debug) fprintf(stderr, "Decompress frame %d at 0x%lx with new lseg_sz 0x%x at 0x%x \n",
-                        cframe, (3 + sn) * SEG_SZ + sizeof(seg_head) + cum_seg_sz + sizeof(lseg_sz), 
-                        lseg_sz, cum_seg_sz);
-                
-                decomp_rd += decompressSegment(&cbuf[cum_seg_sz + sizeof(lseg_sz)], &dbuf[decomp_rd], lseg_sz);
-                cum_seg_sz += lseg_sz + sizeof(lseg_sz);
-            }
-            if ((lseg_sz != 0) && (decomp_rd != decomp_target)) {
-                fprintf(stderr, "Segment %d: Decompressed failed. Wanted %d got %d in %d frames\n",
-                        sn, decomp_target, decomp_rd, cframe);
-                exit(EXIT_FAILURE);
-            }
-            else 
-                if (debug) fprintf(stderr, "Segment %d: Decompressed %d of %d in %d frames\n",
-                        sn, decomp_rd, decomp_target, cframe);
-
+            decomp_rd = decompressExtent(cbuf, dbuf);
             decomp_sz += decomp_rd;
-            writeSegment(outfp, dbuf, seg_head, decomp_rd);
+            
+            if (debug) fprintf(stderr, "Decompress: Expected %u, produced %u\n", decomp_target, decomp_rd);
 
+            writeSegment(outfp, dbuf, seg_head, decomp_rd, (DWORD)0);
+            /*
             if (seg_head->seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
                 exit(EXIT_FAILURE);
             }
+            */
             sn++;
             free(seg_head);
             free(next_seg_head);
