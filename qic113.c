@@ -165,17 +165,17 @@ void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn) {
      * Read the whole segment, minus the header
      */
     unsigned long rd;
-    fseek(infp, sn * SEG_SZ + sizeof(cseg_head), SEEK_SET);
-    if (ftell(infp) != sn * SEG_SZ + sizeof(cseg_head)) {
+    fseek(infp, sn * SEG_SZ + (unsigned int)sizeof(cseg_head), SEEK_SET);
+    if (ftell(infp) != sn * SEG_SZ + (unsigned int)sizeof(cseg_head)) {
         fprintf(stderr,
-                "Unable to seek to compressed segment: %ld (%ld)\n",
-                ftell(infp), sn * SEG_SZ + sizeof(cseg_head));
+                "Unable to seek to compressed segment: %ld (%ud)\n",
+                ftell(infp), sn * SEG_SZ + (unsigned int)sizeof(cseg_head));
         exit(EXIT_FAILURE);
     }
 
-    if ((rd = fread(cbuf, SEG_SZ - sizeof(cseg_head), 1, infp)) != 1) {
+    if ((rd = fread(cbuf, SEG_SZ - (unsigned int)sizeof(cseg_head), 1, infp)) != 1) {
         fprintf(stderr,
-                "Only read 0x%lx bytes of 0x%lx compressed segment\n", rd,
+                "Only read 0x%lx bytes of 0x%ux compressed segment\n", rd,
                 SEG_SZ);
         exit(EXIT_FAILURE);
     }

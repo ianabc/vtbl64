@@ -6,9 +6,9 @@
 #define FHDR_SZ 0x90            /* File header size */
 #define RAW_SEG 0x8000          /* Mask for detecting raw segment */
 
-#define SEG_SZ 29696L           /* Segment size */
+#define SEG_SZ 29696U           /* Segment size */
 #define SEG_HD_SZ 3             /* Segment Header size in bytes */
-#define MAX_SEG_SZ 1048576L       /* Maximal compressed size (QIC-113 Rev.G) */
+#define MAX_SEG_SZ 1048576U       /* Maximal compressed size (QIC-113 Rev.G) */
 #define HBUF_SZ 2048            /* History buffer */
 
 #define DCOMP_MAX_EXTENTS 100   /* Maximums number of compressed extents in a
@@ -85,7 +85,7 @@ typedef struct {
 #pragma pack(pop)
 
 
-BYTE getBit(BYTE *cbuf, unsigned int *bit_pos);
+unsigned int getBit(BYTE *cbuf, unsigned int *bit_pos);
 
 BYTE getByte(BYTE *cbuf, unsigned int *bit_pos);
 
