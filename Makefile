@@ -6,7 +6,7 @@ CFLAGS = -g -Wall
 CFLAGSEXTRA = -ggdb -ansi -pedantic -Werror -W -Wmissing-prototypes \
 			  -Wstrict-prototypes -Wconversion -Wshadow \
 			  -Wcast-qual -Wcast-align -Wnested-externs \
-			  -fshort-enums -fno-common -Dinline= -g -O2
+			  -fshort-enums -fno-common -Dinline= -g -ggdb
 
 .SUFFIXES:
 .SUFFIXES: .c .o
