@@ -26,8 +26,7 @@ unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf) {
     /*
      * Treat the first two bytes of cbuf as a DWORD segment size
      */
-    comp_sz = (BYTE)cbuf[comp_rd] | (BYTE)(cbuf[comp_rd + 1] << 8);
-    while((comp_sz = (BYTE)cbuf[comp_rd] | (BYTE)(cbuf[comp_rd + 1] << 8)) != 0) {
+    while((comp_sz = (DWORD)cbuf[comp_rd] | (DWORD)(cbuf[comp_rd + 1] << 8)) != 0) {
 
         comp_rd += comp_sz + 2;
 
