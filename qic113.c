@@ -4,7 +4,7 @@
 #include <time.h>
 #include "qic.h"
 
-char *flagbits[] = {
+const char *flagbits[] = {
     "Vendor specific volume",
     "Volume spans multiple cartidges",
     "File sets written without verification",
@@ -13,7 +13,7 @@ char *flagbits[] = {
     "File Set Directory follow data section"
 };
 
-char *OStype[] = {
+const char *OStype[] = {
     "Extended",
     "DOS Basic",
     "Unix",
