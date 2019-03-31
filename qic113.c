@@ -182,7 +182,8 @@ void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn) {
 }
 
 
-unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, unsigned int decomp_rd) {
+unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, 
+        unsigned int decomp_rd, WORD seg_sz) {
 
     unsigned int wr = 0;
     /*
@@ -190,13 +191,13 @@ unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, unsigned
      */
     wr += (unsigned int)fwrite(&(seg_head->cum_sz),    sizeof(seg_head->cum_sz),    1, outfp);
     wr += (unsigned int)fwrite(&(seg_head->cum_sz_hi), sizeof(seg_head->cum_sz_hi), 1, outfp);
-    if (wr != 2)
+    wr += (unsigned int)fwrite(&seg_sz, sizeof(seg_sz), 1, outfp);
+    if (wr != 3)
         fprintf(stderr, "Failed to write segment header.\n");
     
-    if ((wr += (unsigned int)fwrite(dbuf, 1, decomp_rd, outfp)) != (decomp_rd+2)) {
+    if ((wr += (unsigned int)fwrite(dbuf, 1, decomp_rd, outfp)) != (decomp_rd+3)) {
         fprintf(stderr, "Failed to write segment data.\n");
         exit(EXIT_FAILURE);
     }
     return wr;
-    
 }

@@ -148,7 +148,7 @@ int main(int argc, char **argv)
             
             if (debug) fprintf(stderr, "Decompress: Expected %u, produced %u\n", decomp_target, decomp_rd);
 
-            writeSegment(outfp, dbuf, seg_head, decomp_rd);
+            writeSegment(outfp, dbuf, seg_head, decomp_rd, (DWORD)0);
             /*
             if (seg_head->seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
