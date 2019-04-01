@@ -151,7 +151,7 @@ cseg_head* getSegmentHeader(FILE * fp, unsigned int sn)
         fprintf(stderr, "Unable to seek to compressed segment\n");
     }
     if ((rd = fread(seg_head, sz, 1, fp)) != 1) {
-        fprintf(stderr, "Only read 0x%lx bytes of 0x%lx byte vtbl\n", rd,
+        fprintf(stderr, "Only read 0x%lx bytes of 0x%lx byte segment header\n", rd,
                 sz);
         exit(EXIT_FAILURE);
     }

@@ -113,7 +113,7 @@ int main(int argc, char **argv)
          * write to file.
          */
         if (startsn > 0) sn = startsn;
-        if (endsn < 0) endsn = fhead2->blkcnt;
+        if (endsn < 0) endsn = fhead1->blkcnt;
 
         while (sn < endsn) {
 
@@ -127,14 +127,18 @@ int main(int argc, char **argv)
             seg_head = getSegmentHeader(infp, sn);
             next_seg_head = getSegmentHeader(infp, sn+1);
 
-            if (sn != 0 && next_seg_head->cum_sz == 0
-                && next_seg_head->cum_sz_hi == 0) {
-                fprintf(stderr, "Catalog found in segment %u\n", sn);
+            if (sn != 0 && next_seg_head->cum_sz == 0 && next_seg_head->cum_sz_hi == 0) {
+                if (sn < endsn - 1) 
+                    if (debug) fprintf(stderr, "Catalog found in next segment %u\n", sn);
+                /*
+                 * We don't really have a target here since we don't have the
+                 * total decompressed size available.
+                 */
                 decomp_target = UINT32_MAX;
             }
             else {
-                decomp_target = ((next_seg_head->cum_sz_hi * (UINT32_MAX + 1) + next_seg_head->cum_sz) - 
-                     (seg_head->cum_sz_hi * (UINT32_MAX + 1) + seg_head->cum_sz));
+                decomp_target = (next_seg_head->cum_sz_hi * (UINT32_MAX + 1) + next_seg_head->cum_sz) - 
+                     (seg_head->cum_sz_hi * (UINT32_MAX + 1) + seg_head->cum_sz);
             }
 
 
@@ -168,6 +172,8 @@ int main(int argc, char **argv)
     } else {
         fprintf(stderr, "File is not compressed\n");
     }
+
+    fprintf(stderr, "File successfully decompressed\n");
 
     free(fhead1);
     free(fhead2);
