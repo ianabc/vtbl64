@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     BYTE *dbuf;
     unsigned int sn = 0;
     int startsn = -1, endsn = -1;
-    unsigned long decomp_sz = 0;
+    unsigned long decomp_sz = 0, decomp_wr_sz = 0;
     unsigned int decomp_rd, decomp_target;
     int c;
 
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
             
             if (debug) fprintf(stderr, "Decompress: Expected %u, produced %u\n", decomp_target, decomp_rd);
 
-            writeSegment(outfp, dbuf, seg_head, decomp_rd, (DWORD)0);
+            decomp_wr_sz += writeSegment(outfp, dbuf, decomp_rd);
             /*
             if (seg_head->seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
@@ -167,7 +167,10 @@ int main(int argc, char **argv)
         free(dbuf);
         /*
          * Still have the catalog to deal with
+         * Check decomp_wr_sz and zero pad to the next 0x7400 boundary
          */
+        zeroPadSegment(outfp, decomp_wr_sz);
+
         fclose(outfp);
     } else {
         fprintf(stderr, "File is not compressed\n");

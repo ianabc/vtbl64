@@ -182,22 +182,37 @@ void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn) {
 }
 
 
-unsigned int writeSegment(FILE *outfp, BYTE *dbuf, cseg_head *seg_head, 
-        unsigned int decomp_rd, WORD seg_sz) {
+unsigned int writeSegment(FILE *outfp, BYTE *dbuf, unsigned int decomp_rd) {
 
-    unsigned int wr = 0;
+    unsigned int wr;
     /*
      * Header information for new decompressed data
      */
-    wr += (unsigned int)fwrite(&(seg_head->cum_sz),    sizeof(seg_head->cum_sz),    1, outfp);
-    wr += (unsigned int)fwrite(&(seg_head->cum_sz_hi), sizeof(seg_head->cum_sz_hi), 1, outfp);
-    wr += (unsigned int)fwrite(&seg_sz, sizeof(seg_sz), 1, outfp);
-    if (wr != 3)
-        fprintf(stderr, "Failed to write segment header.\n");
-    
-    if ((wr += (unsigned int)fwrite(dbuf, 1, decomp_rd, outfp)) != (decomp_rd+3)) {
-        fprintf(stderr, "Failed to write segment data.\n");
+    if ((wr = (unsigned int)fwrite(dbuf, 1, decomp_rd, outfp)) != decomp_rd) {
+        fprintf(stderr, "Failed to write segment data. %u/%u\n", wr, decomp_rd);
         exit(EXIT_FAILURE);
     }
     return wr;
+}
+
+unsigned int zeroPadSegment(FILE * outfp, unsigned int decomp_wr_sz) {
+
+    BYTE *zbuf;
+    unsigned int zeros = 0;
+    unsigned int wr;
+
+    if (decomp_wr_sz % SEG_SZ) {
+
+        zeros = SEG_SZ - (decomp_wr_sz % SEG_SZ);
+
+        if ((zbuf = (BYTE *) calloc(zeros * sizeof(BYTE), 1)) == NULL) {
+            fprintf(stderr, "Failed to allocate space for zero padding\n");
+            exit(EXIT_FAILURE);
+        }
+        if ((wr = (unsigned int)fwrite(zbuf, 1, zeros, outfp)) != zeros) {
+            fprintf(stderr, "Failed to zero pad output file\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    return zeros;
 }

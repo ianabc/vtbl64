@@ -99,8 +99,9 @@ cseg_head *getSegmentHeader(FILE * fp, unsigned int sn);
 
 void getSegmentData(FILE *infp, BYTE *cbuf, unsigned int sn);
 
-unsigned int writeSegment(FILE *outfp, BYTE *dbuf, 
-        cseg_head *seg_head, unsigned int decomp_sz, WORD seg_sz);
+unsigned int writeSegment(FILE *outfp, BYTE *dbuf, unsigned int decomp_sz);
+
+unsigned int zeroPadSegment(FILE *outfp, unsigned int decomp_wr_sz);
 
 unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf);
 unsigned int decompressFrame(BYTE *cbuf, BYTE *dbuf, unsigned int seg_sz);

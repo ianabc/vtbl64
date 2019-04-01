@@ -11,3 +11,4 @@ dcomp.out
 cat.out
 tags
 *.dSYM
+.gdb_history

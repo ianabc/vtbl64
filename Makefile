@@ -2,7 +2,6 @@
 #in NH 5/13/17 had to add -lrt to most of executables so clock_gettime() could be found
 
 CC?=gcc
-CC=gcc-8
 CFLAGS = -g -Wall
 CFLAGSEXTRA = -ggdb -ansi -pedantic -Werror -W -Wmissing-prototypes \
 			  -Wstrict-prototypes -Wconversion -Wshadow -Wpointer-arith \
