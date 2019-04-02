@@ -103,6 +103,9 @@ unsigned int writeSegment(FILE *outfp, BYTE *dbuf, unsigned int decomp_sz);
 
 unsigned int zeroPadSegment(FILE *outfp, unsigned int decomp_wr_sz);
 
+unsigned int writeFHeader(FILE *outfp, fhead113 *header, unsigned int sn);
+unsigned int writeVTBL(FILE *outfp, vtbl113 *header, unsigned int sn);
+
 unsigned int decompressExtent(BYTE *cbuf, BYTE *dbuf);
 unsigned int decompressFrame(BYTE *cbuf, BYTE *dbuf, unsigned int seg_sz);
 #endif

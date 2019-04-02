@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <getopt.h>
 #include <unistd.h>
 #include "qic.h"
@@ -21,7 +22,7 @@ int main(int argc, char **argv)
     int overwrite = 0;
 
     fhead113 *fhead1, *fhead2;
-    vtbl113 *vtbl;
+    vtbl113 *vtbl, vtbl_out;
     cseg_head *seg_head, *next_seg_head;
     BYTE *cbuf;
     BYTE *dbuf;
@@ -76,6 +77,7 @@ int main(int argc, char **argv)
     fhead2 = getFHeader(infp, sn++);
     vtbl = getVTBL(infp);
     sn++;
+    
     displayVTBL(vtbl);
 
     /*
@@ -95,8 +97,15 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Can't ouput dcomp.out for output\n");
                 exit(EXIT_FAILURE);
             }
+            writeFHeader(outfp, fhead1, 0);
+            writeFHeader(outfp, fhead2, 1);
+            memcpy(vtbl, &vtbl_out, sizeof(*vtbl));
+            vtbl_out.end = 0;
+            vtbl_out.dirSz = 0;
+            vtbl_out.dataSz[0] = vtbl_out.dataSz[1] = 0;
+            writeVTBL(outfp, &vtbl_out, 2);
         }
-        
+
         if ((cbuf = (BYTE *) calloc(SEG_SZ, 1)) == NULL) {
             fprintf(stderr,
                     "Failed to allocate space for compressed buffer\n");
@@ -169,7 +178,7 @@ int main(int argc, char **argv)
          * Still have the catalog to deal with
          * Check decomp_wr_sz and zero pad to the next 0x7400 boundary
          */
-        zeroPadSegment(outfp, decomp_wr_sz);
+        decomp_wr_sz += zeroPadSegment(outfp, decomp_wr_sz);
 
         fclose(outfp);
     } else {

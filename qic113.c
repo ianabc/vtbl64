@@ -181,6 +181,40 @@ void getSegmentData(FILE * infp, BYTE * cbuf, unsigned int sn) {
     }
 }
 
+unsigned int writeFHeader(FILE *outfp, fhead113 *header, unsigned int sn) {
+    
+    unsigned long wr;
+
+    fseek(outfp, sn * SEG_SZ, SEEK_SET);
+    if (ftell(outfp) != sn * SEG_SZ) {
+        fprintf(stderr, "Unable to seek to segment for QIC113 header write: %ld (%ud)\n",
+                ftell(outfp), sn * SEG_SZ);
+        exit(EXIT_FAILURE);
+    }
+
+    if ((wr = (unsigned int)fwrite(header, sizeof(*header), 1, outfp)) != 1) {
+        fprintf(stderr, "Failed to write QIC113 header\n");
+        exit(EXIT_FAILURE);
+    }
+    return 0;
+}
+
+unsigned int writeVTBL(FILE *outfp, vtbl113 *vtbl, unsigned int sn) {
+    unsigned long wr;
+
+    fseek(outfp, sn * SEG_SZ, SEEK_SET);
+    if (ftell(outfp) != sn * SEG_SZ) {
+        fprintf(stderr, "Unable to seek to segment for VTBL write: %ld (%ud)\n",
+                ftell(outfp), sn * SEG_SZ);
+        exit(EXIT_FAILURE);
+    }
+
+    if ((wr = (unsigned int)fwrite(vtbl, sizeof(*vtbl), 1, outfp)) != 1) {
+        fprintf(stderr, "Failed to write VTBL header\n");
+        exit(EXIT_FAILURE);
+    }
+    return 0;
+}
 
 unsigned int writeSegment(FILE *outfp, BYTE *dbuf, unsigned int decomp_rd) {
 
