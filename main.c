@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <getopt.h>
 #include <unistd.h>
 #include "qic.h"
@@ -22,6 +21,7 @@ int main(int argc, char **argv)
     int overwrite = 0;
 
     fhead113 *fhead1, *fhead2;
+    fhead113 fhead1_out, fhead2_out;
     vtbl113 *vtbl, vtbl_out;
     cseg_head *seg_head, *next_seg_head;
     BYTE *cbuf;
@@ -97,13 +97,25 @@ int main(int argc, char **argv)
                 fprintf(stderr, "Can't ouput dcomp.out for output\n");
                 exit(EXIT_FAILURE);
             }
-            writeFHeader(outfp, fhead1, 0);
-            writeFHeader(outfp, fhead2, 1);
-            memcpy(vtbl, &vtbl_out, sizeof(*vtbl));
+           
+            /*
+             * Zero block counts and sizes, we will update these headers once
+             * we know more about the archive data.
+             */
+            fhead1_out = *fhead1;
+            fhead1_out.blkcnt = 0;
+            writeFHeader(outfp, &fhead1_out, 0);
+
+            fhead2_out = *fhead2;
+            fhead2_out.blkcnt = 0;
+            writeFHeader(outfp, &fhead2_out, 1);
+
+            vtbl_out = *vtbl;
             vtbl_out.end = 0;
             vtbl_out.dirSz = 0;
             vtbl_out.dataSz[0] = vtbl_out.dataSz[1] = 0;
             writeVTBL(outfp, &vtbl_out, 2);
+
         }
 
         if ((cbuf = (BYTE *) calloc(SEG_SZ, 1)) == NULL) {
