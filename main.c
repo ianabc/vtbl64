@@ -206,12 +206,12 @@ int main(int argc, char **argv)
          */
         decomp_wr_sz += zeroPadSegment(outfp, decomp_wr_sz);
 
-        fhead1_out.blkcnt = sn;
+        fhead1_out.blkcnt = decomp_wr_sz / SEG_SZ;
         decomp_wr_sz += writeFHeader(outfp, &fhead1_out, 0);
         zeroPadSegment(outfp, decomp_wr_sz);
 
-        fhead2_out.blkcnt = sn;
-        decomp_wr_sz += writeFHeader(outfp, &fhead2_out, 0);
+        fhead2_out.blkcnt = decomp_wr_sz / SEG_SZ;
+        decomp_wr_sz += writeFHeader(outfp, &fhead2_out, 1);
         zeroPadSegment(outfp, decomp_wr_sz);
 
         vtbl_out.end = sn - 1;
