@@ -29,7 +29,9 @@ int main(int argc, char **argv)
     unsigned int sn = 0;
     int startsn = -1, endsn = -1;
     unsigned long decomp_sz = 0, decomp_wr_sz = 0;
-    unsigned int decomp_rd, decomp_target;
+    unsigned long data_wr_sz = 0, dir_wr_sz = 0;
+    unsigned int decomp_rd, decomp_wr, decomp_target;
+    int incatalog = 0;
     int c;
 
     while((c = getopt(argc, argv, "dfi:o:s:t:")) != -1) {
@@ -104,18 +106,20 @@ int main(int argc, char **argv)
              */
             fhead1_out = *fhead1;
             fhead1_out.blkcnt = 0;
-            writeFHeader(outfp, &fhead1_out, 0);
+            decomp_wr_sz += writeFHeader(outfp, &fhead1_out, 0);
+            zeroPadSegment(outfp, decomp_wr_sz);
 
             fhead2_out = *fhead2;
             fhead2_out.blkcnt = 0;
-            writeFHeader(outfp, &fhead2_out, 1);
+            decomp_wr_sz += writeFHeader(outfp, &fhead2_out, 1);
+            zeroPadSegment(outfp, decomp_wr_sz);
 
             vtbl_out = *vtbl;
             vtbl_out.end = 0;
             vtbl_out.dirSz = 0;
             vtbl_out.dataSz[0] = vtbl_out.dataSz[1] = 0;
-            writeVTBL(outfp, &vtbl_out, 2);
-
+            decomp_wr_sz += writeVTBL(outfp, &vtbl_out, 2);
+            zeroPadSegment(outfp, decomp_wr_sz);
         }
 
         if ((cbuf = (BYTE *) calloc(SEG_SZ, 1)) == NULL) {
@@ -148,9 +152,13 @@ int main(int argc, char **argv)
             seg_head = getSegmentHeader(infp, sn);
             next_seg_head = getSegmentHeader(infp, sn+1);
 
+            if (sn != 0 && seg_head->cum_sz == 0 && seg_head->cum_sz_hi == 0)
+                incatalog = 1;
+
             if (sn != 0 && next_seg_head->cum_sz == 0 && next_seg_head->cum_sz_hi == 0) {
-                if (sn < endsn - 1) 
+                if (sn < endsn - 1)
                     if (debug) fprintf(stderr, "Catalog found in next segment %u\n", sn);
+
                 /*
                  * We don't really have a target here since we don't have the
                  * total decompressed size available.
@@ -173,7 +181,13 @@ int main(int argc, char **argv)
             
             if (debug) fprintf(stderr, "Decompress: Expected %u, produced %u\n", decomp_target, decomp_rd);
 
-            decomp_wr_sz += writeSegment(outfp, dbuf, decomp_rd);
+            decomp_wr += writeSegment(outfp, dbuf, decomp_rd);
+            decomp_wr_sz += decomp_wr;
+            if(incatalog)
+                dir_wr_sz += decomp_wr;
+            else
+                data_wr_sz += decomp_wr;
+
             /*
             if (seg_head->seg_sz & RAW_SEG) {
                 fprintf(stderr, "Raw Segment, not handled\n");
@@ -191,6 +205,21 @@ int main(int argc, char **argv)
          * Check decomp_wr_sz and zero pad to the next 0x7400 boundary
          */
         decomp_wr_sz += zeroPadSegment(outfp, decomp_wr_sz);
+
+        fhead1_out.blkcnt = sn;
+        decomp_wr_sz += writeFHeader(outfp, &fhead1_out, 0);
+        zeroPadSegment(outfp, decomp_wr_sz);
+
+        fhead2_out.blkcnt = sn;
+        decomp_wr_sz += writeFHeader(outfp, &fhead2_out, 0);
+        zeroPadSegment(outfp, decomp_wr_sz);
+
+        vtbl_out.end = sn - 1;
+        vtbl_out.dirSz = dir_wr_sz;
+        vtbl_out.dataSz[0] = data_wr_sz % (UINT32_MAX);
+        vtbl_out.dataSz[1] = data_wr_sz / (UINT32_MAX);
+        decomp_wr_sz += writeVTBL(outfp, &vtbl_out, 2);
+        zeroPadSegment(outfp, decomp_wr_sz);
 
         fclose(outfp);
     } else {

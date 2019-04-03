@@ -192,11 +192,11 @@ unsigned int writeFHeader(FILE *outfp, fhead113 *header, unsigned int sn) {
         exit(EXIT_FAILURE);
     }
 
-    if ((wr = (unsigned int)fwrite(header, sizeof(*header), 1, outfp)) != 1) {
+    if ((wr = (unsigned int)fwrite(header, sizeof(fhead113), 1, outfp)) != 1) {
         fprintf(stderr, "Failed to write QIC113 header\n");
         exit(EXIT_FAILURE);
     }
-    return 0;
+    return sizeof(fhead113);
 }
 
 unsigned int writeVTBL(FILE *outfp, vtbl113 *vtbl, unsigned int sn) {
@@ -213,7 +213,7 @@ unsigned int writeVTBL(FILE *outfp, vtbl113 *vtbl, unsigned int sn) {
         fprintf(stderr, "Failed to write VTBL header\n");
         exit(EXIT_FAILURE);
     }
-    return 0;
+    return sizeof(fhead113);
 }
 
 unsigned int writeSegment(FILE *outfp, BYTE *dbuf, unsigned int decomp_rd) {
