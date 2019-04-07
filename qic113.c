@@ -199,6 +199,7 @@ unsigned int writeFHeader(FILE *outfp, fhead113 *header, unsigned int sn) {
     return sizeof(fhead113);
 }
 
+
 unsigned int writeVTBL(FILE *outfp, vtbl113 *vtbl, unsigned int sn) {
     unsigned long wr;
 
@@ -213,8 +214,9 @@ unsigned int writeVTBL(FILE *outfp, vtbl113 *vtbl, unsigned int sn) {
         fprintf(stderr, "Failed to write VTBL header\n");
         exit(EXIT_FAILURE);
     }
-    return sizeof(fhead113);
+    return sizeof(vtbl113);
 }
+
 
 unsigned int writeSegment(FILE *outfp, BYTE *dbuf, unsigned int decomp_rd) {
 
@@ -247,6 +249,7 @@ unsigned int zeroPadSegment(FILE * outfp, unsigned int decomp_wr_sz) {
             fprintf(stderr, "Failed to zero pad output file\n");
             exit(EXIT_FAILURE);
         }
+        free(zbuf);
     }
     return zeros;
 }

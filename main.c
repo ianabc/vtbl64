@@ -107,19 +107,19 @@ int main(int argc, char **argv)
             fhead1_out = *fhead1;
             fhead1_out.blkcnt = 0;
             decomp_wr_sz += writeFHeader(outfp, &fhead1_out, 0);
-            zeroPadSegment(outfp, decomp_wr_sz);
+            decomp_wr_sz += zeroPadSegment(outfp, decomp_wr_sz);
 
             fhead2_out = *fhead2;
             fhead2_out.blkcnt = 0;
             decomp_wr_sz += writeFHeader(outfp, &fhead2_out, 1);
-            zeroPadSegment(outfp, decomp_wr_sz);
+            decomp_wr_sz += zeroPadSegment(outfp, decomp_wr_sz);
 
             vtbl_out = *vtbl;
             vtbl_out.end = 0;
             vtbl_out.dirSz = 0;
             vtbl_out.dataSz[0] = vtbl_out.dataSz[1] = 0;
             decomp_wr_sz += writeVTBL(outfp, &vtbl_out, 2);
-            zeroPadSegment(outfp, decomp_wr_sz);
+            decomp_wr_sz += zeroPadSegment(outfp, decomp_wr_sz);
         }
 
         if ((cbuf = (BYTE *) calloc(SEG_SZ, 1)) == NULL) {
@@ -204,22 +204,30 @@ int main(int argc, char **argv)
          * Still have the catalog to deal with
          * Check decomp_wr_sz and zero pad to the next 0x7400 boundary
          */
-        decomp_wr_sz += zeroPadSegment(outfp, decomp_wr_sz);
+        fprintf(stderr, "%lu\n", decomp_wr_sz);
+        decomp_wr = zeroPadSegment(outfp, decomp_wr_sz);
+        decomp_wr_sz += decomp_wr;
 
         fhead1_out.blkcnt = decomp_wr_sz / SEG_SZ;
-        decomp_wr_sz += writeFHeader(outfp, &fhead1_out, 0);
-        zeroPadSegment(outfp, decomp_wr_sz);
+        decomp_wr = writeFHeader(outfp, &fhead1_out, 0);
+        decomp_wr_sz += decomp_wr;
+        decomp_wr = zeroPadSegment(outfp, decomp_wr_sz);
+        decomp_wr_sz += decomp_wr;
 
         fhead2_out.blkcnt = decomp_wr_sz / SEG_SZ;
-        decomp_wr_sz += writeFHeader(outfp, &fhead2_out, 1);
-        zeroPadSegment(outfp, decomp_wr_sz);
+        decomp_wr = writeFHeader(outfp, &fhead2_out, 1);
+        decomp_wr_sz += decomp_wr;
+        decomp_wr = zeroPadSegment(outfp, decomp_wr_sz);
+        decomp_wr_sz += decomp_wr;
 
         vtbl_out.end = sn - 1;
         vtbl_out.dirSz = dir_wr_sz;
         vtbl_out.dataSz[0] = data_wr_sz % (UINT32_MAX);
         vtbl_out.dataSz[1] = data_wr_sz / (UINT32_MAX);
-        decomp_wr_sz += writeVTBL(outfp, &vtbl_out, 2);
-        zeroPadSegment(outfp, decomp_wr_sz);
+        decomp_wr = writeVTBL(outfp, &vtbl_out, 2);
+        decomp_wr_sz += decomp_wr;
+        decomp_wr = zeroPadSegment(outfp, decomp_wr_sz);
+        decomp_wr_sz += decomp_wr;
 
         fclose(outfp);
     } else {
