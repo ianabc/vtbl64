@@ -231,7 +231,7 @@ unsigned int writeSegment(FILE *outfp, BYTE *dbuf, unsigned int decomp_rd) {
     return wr;
 }
 
-unsigned int zeroPadSegment(FILE * outfp, unsigned int decomp_wr_sz) {
+unsigned int zeroPadSegment(FILE * outfp, unsigned long int decomp_wr_sz) {
 
     BYTE *zbuf;
     unsigned int zeros = 0;
@@ -239,7 +239,7 @@ unsigned int zeroPadSegment(FILE * outfp, unsigned int decomp_wr_sz) {
 
     if (decomp_wr_sz % SEG_SZ) {
 
-        zeros = SEG_SZ - (decomp_wr_sz % SEG_SZ);
+        zeros = SEG_SZ - (unsigned int)(decomp_wr_sz % SEG_SZ);
 
         if ((zbuf = (BYTE *) calloc(zeros * sizeof(BYTE), 1)) == NULL) {
             fprintf(stderr, "Failed to allocate space for zero padding\n");

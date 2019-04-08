@@ -101,7 +101,7 @@ void getSegmentData(FILE *infp, BYTE *cbuf, unsigned int sn);
 
 unsigned int writeSegment(FILE *outfp, BYTE *dbuf, unsigned int decomp_sz);
 
-unsigned int zeroPadSegment(FILE *outfp, unsigned int decomp_wr_sz);
+unsigned int zeroPadSegment(FILE *outfp, unsigned long int decomp_wr_sz);
 
 unsigned int writeFHeader(FILE *outfp, fhead113 *header, unsigned int sn);
 unsigned int writeVTBL(FILE *outfp, vtbl113 *header, unsigned int sn);

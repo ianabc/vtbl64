@@ -56,6 +56,7 @@ int main(int argc, char **argv)
                 break;
             case 'h':
                 usage();
+                break;
             case '?':
             default:
                 fprintf(stderr, "%s: option '-%c' is invalid: ignored\n",
@@ -181,7 +182,7 @@ int main(int argc, char **argv)
             
             if (debug) fprintf(stderr, "Decompress: Expected %u, produced %u\n", decomp_target, decomp_rd);
 
-            decomp_wr += writeSegment(outfp, dbuf, decomp_rd);
+            decomp_wr = writeSegment(outfp, dbuf, decomp_rd);
             decomp_wr_sz += decomp_wr;
             if(incatalog)
                 dir_wr_sz += decomp_wr;
